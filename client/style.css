@@ -1,1 +1,16 @@
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #0b3d2e;
+  color: white;
+}
 
+button {
+  padding: 10px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+#game {
+  margin-top: 20px;
+}
