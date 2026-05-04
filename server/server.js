@@ -9,26 +9,20 @@ const game = require("./game");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
-});
+const io = new Server(server);
 
-// 🔥 client 폴더 정적 제공
 app.use(express.static(path.join(__dirname, "../client")));
 
 let rooms = {};
 
 io.on("connection", (socket) => {
-  console.log("접속:", socket.id);
 
   socket.on("createRoom", () => {
     const roomId = Math.random().toString(36).substring(7);
 
     rooms[roomId] = {
       players: [socket.id],
-      deck: game.createDeck()
+      state: null
     };
 
     socket.join(roomId);
@@ -42,14 +36,41 @@ io.on("connection", (socket) => {
     room.players.push(socket.id);
     socket.join(roomId);
 
-    const state = game.dealCards(room.deck);
+    const deck = game.createDeck();
+    room.state = game.dealCards(deck);
 
-    io.to(roomId).emit("startGame", state);
+    io.to(roomId).emit("startGame", room.state);
+  });
+
+  socket.on("playCard", ({ roomId, cardIndex }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const state = room.state;
+
+    const playerKey =
+      socket.id === room.players[0] ? "player1" : "player2";
+
+    if (state.turn !== playerKey) return;
+
+    const hand = state[playerKey];
+    const card = hand.splice(cardIndex, 1)[0];
+
+    const result = game.match(card, state.table);
+    state.table = result.table;
+
+    if (playerKey === "player1") {
+      state.captured1.push(...result.captured);
+      state.turn = "player2";
+    } else {
+      state.captured2.push(...result.captured);
+      state.turn = "player1";
+    }
+
+    io.to(roomId).emit("updateGame", state);
   });
 });
 
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log("서버 실행:", PORT);
+server.listen(3000, () => {
+  console.log("서버 실행");
 });
