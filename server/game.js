@@ -19,15 +19,32 @@ function shuffle(array) {
 
 function dealCards(deck) {
   return {
-    player: deck.splice(0, 10),
-    opponent: deck.splice(0, 10),
+    player1: deck.splice(0, 10),
+    player2: deck.splice(0, 10),
     table: deck.splice(0, 8),
-    draw: deck
+    draw: deck,
+    captured1: [],
+    captured2: [],
+    turn: "player1"
   };
 }
 
-function matchCard(card, table) {
-  return table.filter(t => t.month === card.month);
+function match(card, table) {
+  const matches = table.filter(t => t.month === card.month);
+
+  if (matches.length > 0) {
+    // 매칭된 카드 제거
+    const remaining = table.filter(t => t.month !== card.month);
+    return {
+      captured: [card, ...matches],
+      table: remaining
+    };
+  } else {
+    return {
+      captured: [],
+      table: [...table, card]
+    };
+  }
 }
 
 function calculateScore(cards) {
@@ -46,6 +63,6 @@ function calculateScore(cards) {
 module.exports = {
   createDeck,
   dealCards,
-  matchCard,
+  match,
   calculateScore
 };
