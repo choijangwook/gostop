@@ -16,10 +16,9 @@ let rooms = {};
 function createDeck() {
   const deck = [];
   for (let i = 1; i <= 12; i++) {
-    deck.push({ month: i });
-    deck.push({ month: i });
-    deck.push({ month: i });
-    deck.push({ month: i });
+    for (let j = 0; j < 4; j++) {
+      deck.push({ month: i });
+    }
   }
   return deck.sort(() => Math.random() - 0.5);
 }
