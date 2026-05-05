@@ -1,7 +1,7 @@
 const socket = io("https://gostop-server.onrender.com");
 
 let currentRoom = null;
-let currentState = null;
+let state = null;
 
 function createRoom() {
   socket.emit("createRoom");
@@ -18,40 +18,28 @@ socket.on("roomCreated", (roomId) => {
   currentRoom = roomId;
 });
 
-socket.on("startGame", (state) => {
-  currentState = state;
+socket.on("startGame", (gameState) => {
+  state = gameState;
   render();
 });
 
-socket.on("updateGame", (state) => {
-  currentState = state;
-  render();
+// 🔥 디버그
+socket.on("connect", () => {
+  console.log("서버 연결됨:", socket.id);
 });
 
-function playCard(index) {
-  socket.emit("playCard", {
-    roomId: currentRoom,
-    cardIndex: index
-  });
-}
+socket.on("connect_error", (err) => {
+  console.log("연결 실패:", err.message);
+});
 
 function render() {
   const game = document.getElementById("game");
 
-  const myCards = currentState.player1;
-
   game.innerHTML = `
-    <h3>내 턴: ${currentState.turn}</h3>
-
     <h3>내 카드</h3>
-    ${myCards.map((c, i) =>
-      `<button onclick="playCard(${i})">${c.month}</button>`
-    ).join("")}
+    ${state.player1.map(c => `<span>${c.month}</span>`).join(" ")}
 
     <h3>바닥</h3>
-    ${currentState.table.map(c => c.month).join(", ")}
-
-    <h3>획득 카드</h3>
-    ${currentState.captured1.length}
+    ${state.table.map(c => `<span>${c.month}</span>`).join(" ")}
   `;
 }
