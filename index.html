@@ -1,22 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Gostop</title>
+  <title>Gostop Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 스타일 -->
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h1>🎴 Gostop</h1>
+  <h1>🎴 Gostop</h1>
 
-<button onclick="createRoom()">방 만들기</button>
-<input id="roomInput">
-<button onclick="joinRoom()">참가</button>
+  <!-- 방 생성 / 참가 -->
+  <div>
+    <button onclick="createRoom()">방 만들기</button>
+    <input id="roomInput" placeholder="방 코드 입력">
+    <button onclick="joinRoom()">참가</button>
+  </div>
 
-<div id="game"></div>
+  <!-- 게임 영역 -->
+  <div id="game" style="margin-top:20px;"></div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="app.js"></script>
+  <!-- 🔥 중요: socket.io는 서버(Render)에서 가져와야 함 -->
+  <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+
+  <!-- 앱 로직 -->
+  <script src="app.js"></script>
 
 </body>
 </html>
