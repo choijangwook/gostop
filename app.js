@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("https://gostop-server.onrender.com");
 
 let currentRoom = null;
 let currentState = null;
