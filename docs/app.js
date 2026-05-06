@@ -3,20 +3,29 @@ const socket = io("https://gostop-server.onrender.com");
 let state = null;
 let myTurn = false;
 
+console.log("app.js 정상 로드됨");
+
 function createRoom() {
+  console.log("방 만들기 클릭");
   socket.emit("createRoom");
 }
 
 function joinRoom() {
   const roomId = document.getElementById("roomInput").value;
+  console.log("참가 시도:", roomId);
   socket.emit("joinRoom", roomId);
 }
+
+socket.on("connect", () => {
+  console.log("서버 연결됨:", socket.id);
+});
 
 socket.on("roomCreated", (roomId) => {
   alert("방 코드: " + roomId);
 });
 
 socket.on("startGame", (gameState) => {
+  console.log("게임 시작");
   state = gameState;
   myTurn = gameState.turn === socket.id;
   render();
@@ -28,15 +37,14 @@ socket.on("updateGame", (gameState) => {
   render();
 });
 
-/* 카드 클릭 */
 function playCard(index) {
   if (!myTurn) return;
-
   socket.emit("playCard", index);
 }
 
-/* 렌더 */
 function render() {
+  if (!state) return;
+
   const game = document.getElementById("game");
   const status = document.getElementById("status");
 
@@ -63,4 +71,3 @@ function render() {
     </div>
   `;
 }
-
