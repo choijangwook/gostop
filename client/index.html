@@ -1,1 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gostop</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<h1>🎴 Gostop</h1>
+
+<div class="menu">
+  <button onclick="createRoom()">방 만들기</button>
+  <input id="roomInput" placeholder="방 코드">
+  <button onclick="joinRoom()">참가</button>
+</div>
+
+<div id="status"></div>
+<div id="game"></div>
+
+<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
