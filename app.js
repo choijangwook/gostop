@@ -2,8 +2,13 @@ const socket = io("https://gostop-server.onrender.com");
 
 let state = null;
 let captured = [];
+let aiCaptured = [];
+
 let score = 0;
+let aiScore = 0;
 let goCount = 0;
+
+let playerTurn = true;
 
 function createRoom() {
   socket.emit("createRoom");
@@ -20,121 +25,125 @@ socket.on("roomCreated", (roomId) => {
 
 socket.on("startGame", (gameState) => {
   state = gameState;
+
+  // 🔥 AI 카드 분배
+  state.ai = state.draw.splice(0, 10);
+
   render();
 });
 
-/* 🔥 카드 플레이 */
+/* 🔥 플레이어 턴 */
 function playCard(index) {
+  if (!playerTurn) return;
+
   const card = state.player1[index];
-  const same = state.table.filter(c => c.month === card.month);
-
-  // 폭탄
-  if (same.length === 3) {
-    captured.push(card, ...same);
-    state.table = state.table.filter(c => c.month !== card.month);
-    alert("💣 폭탄!");
-  }
-
-  // 따닥
-  else if (same.length === 2) {
-    captured.push(card, ...same);
-    state.table = state.table.filter(c => c.month !== card.month);
-    alert("🔥 따닥!");
-  }
-
-  // 쌍
-  else if (same.length === 1) {
-    captured.push(card, same[0]);
-    state.table = state.table.filter(c => c !== same[0]);
-    alert("👊 쌍!");
-  }
-
-  // 없음
-  else {
-    state.table.push(card);
-
-    const after = state.table.filter(c => c.month === card.month);
-
-    if (after.length === 2) alert("⚡ 쪽!");
-    else alert("😐 끗");
-  }
+  processTurn(card, true);
 
   state.player1.splice(index, 1);
 
-  // 뽑기
-  if (state.draw.length > 0) {
-    const drawCard = state.draw.shift();
-    processDraw(drawCard);
-  }
+  drawCard(true);
 
   updateScore();
+
+  playerTurn = false;
+
+  render();
+
+  setTimeout(aiTurn, 800);
+}
+
+/* 🔥 AI 턴 */
+function aiTurn() {
+  if (state.ai.length === 0) return;
+
+  // 🔥 AI 선택 전략
+  let index = state.ai.findIndex(c =>
+    state.table.some(t => t.month === c.month)
+  );
+
+  if (index === -1) index = Math.floor(Math.random() * state.ai.length);
+
+  const card = state.ai[index];
+
+  processTurn(card, false);
+
+  state.ai.splice(index, 1);
+
+  drawCard(false);
+
+  updateScore();
+
+  playerTurn = true;
+
   render();
 }
 
-/* 🔥 뽑기 처리 */
-function processDraw(card) {
+/* 🔥 턴 처리 */
+function processTurn(card, isPlayer) {
+  const target = isPlayer ? captured : aiCaptured;
+
+  const same = state.table.filter(c => c.month === card.month);
+
+  if (same.length === 3) {
+    target.push(card, ...same);
+    state.table = state.table.filter(c => c.month !== card.month);
+  }
+
+  else if (same.length === 2) {
+    target.push(card, ...same);
+    state.table = state.table.filter(c => c.month !== card.month);
+  }
+
+  else if (same.length === 1) {
+    target.push(card, same[0]);
+    state.table = state.table.filter(c => c !== same[0]);
+  }
+
+  else {
+    state.table.push(card);
+  }
+}
+
+/* 🔥 뽑기 */
+function drawCard(isPlayer) {
+  if (state.draw.length === 0) return;
+
+  const card = state.draw.shift();
+  const target = isPlayer ? captured : aiCaptured;
+
   const same = state.table.filter(c => c.month === card.month);
 
   if (same.length > 0) {
-    captured.push(card, ...same);
+    target.push(card, ...same);
     state.table = state.table.filter(c => c.month !== card.month);
-    alert(`🎯 뽑기 성공 (${card.month})`);
   } else {
     state.table.push(card);
   }
 }
 
 /* 🔥 점수 계산 */
+function calc(cards) {
+  let bright = cards.filter(c => c.file.includes("bright")).length;
+  let animal = cards.filter(c => c.file.includes("animal")).length;
+  let ribbon = cards.filter(c => c.file.includes("ribbon")).length;
+  let junk = cards.filter(c => c.file.includes("junk")).length;
+
+  let s = 0;
+
+  if (bright === 3) s += 3;
+  if (bright === 4) s += 4;
+  if (bright === 5) s += 15;
+
+  if (animal >= 5) s += (animal - 4);
+  if (ribbon >= 5) s += (ribbon - 4);
+  if (junk >= 10) s += (junk - 9);
+
+  return s;
+}
+
 function updateScore() {
-  let bright = captured.filter(c => c.file.includes("bright")).length;
-  let animal = captured.filter(c => c.file.includes("animal")).length;
-  let ribbon = captured.filter(c => c.file.includes("ribbon")).length;
-  let junk = captured.filter(c => c.file.includes("junk")).length;
-
-  score = 0;
-
-  // 광
-  if (bright === 3) score += 3;
-  if (bright === 4) score += 4;
-  if (bright === 5) score += 15;
-
-  // 열끗
-  if (animal >= 5) score += (animal - 4);
-
-  // 띠
-  if (ribbon >= 5) score += (ribbon - 4);
-
-  // 피
-  if (junk >= 10) score += (junk - 9);
-
-  checkGoStop();
-}
-
-/* 🔥 고 / 스톱 */
-function checkGoStop() {
-  if (score >= 3) {
-    setTimeout(() => {
-      const go = confirm(`현재 점수 ${score}점\nGO 할까? (취소=STOP)`);
-
-      if (go) {
-        goCount++;
-        score += goCount; // 고 보너스
-        alert(`GO! (${goCount}번)`);
-      } else {
-        alert(`🎉 STOP! 최종 점수: ${score}`);
-        resetGame();
-      }
-    }, 100);
-  }
-}
-
-/* 🔥 게임 리셋 */
-function resetGame() {
-  captured = [];
-  score = 0;
-  goCount = 0;
-  state = null;
-  document.getElementById("game").innerHTML = "<h2>게임 종료</h2>";
+  score = calc(captured);
+  aiScore = calc(aiCaptured);
 }
 
 /* 🔥 렌더링 */
@@ -147,16 +156,21 @@ function render() {
       <img src="cards/${c.file}" onclick="playCard(${i})">
     `).join("")}
 
+    <h3>AI 카드 (${state.ai.length})</h3>
+    ${Array(state.ai.length).fill('<span>🂠</span>').join("")}
+
     <h3>바닥</h3>
     ${state.table.map(c => `
       <img src="cards/${c.file}">
     `).join("")}
 
-    <h3>먹은 카드 (${captured.length})</h3>
-    ${captured.map(c => `
-      <img src="cards/${c.file}">
-    `).join("")}
+    <h3>내 점수: ${score}</h3>
+    <h3>AI 점수: ${aiScore}</h3>
 
-    <h3>점수: ${score}점 (GO: ${goCount})</h3>
+    <h3>내 먹은 카드 (${captured.length})</h3>
+    ${captured.map(c => `<img src="cards/${c.file}">`).join("")}
+
+    <h3>AI 먹은 카드 (${aiCaptured.length})</h3>
+    ${aiCaptured.map(c => `<img src="cards/${c.file}">`).join("")}
   `;
 }
