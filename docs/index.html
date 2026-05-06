@@ -1,13 +1,7 @@
-<!-- disable jekyll -->
-
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-<meta name="jekyll-theme" content="none">
-
-  
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gostop</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -15,13 +9,10 @@
 
 <h1>🎴 Gostop</h1>
 
-<div class="menu">
-  <button onclick="createRoom()">방 만들기</button>
-  <input id="roomInput" placeholder="방 코드">
-  <button onclick="joinRoom()">참가</button>
-</div>
+<button onclick="createRoom()">방 만들기</button>
+<input id="roomInput">
+<button onclick="joinRoom()">참가</button>
 
-<div id="status"></div>
 <div id="game"></div>
 
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
@@ -29,4 +20,3 @@
 
 </body>
 </html>
-
