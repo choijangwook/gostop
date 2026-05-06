@@ -1,32 +1,23 @@
-<script>
-window.onerror = function() { return true; }
-</script>
-
-
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Gostop Game</title>
+  <title>Gostop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <h1>🎴 Gostop</h1>
+<h1>🎴 Gostop</h1>
 
-  <button onclick="createRoom()">방 만들기</button>
-  <input id="roomInput" placeholder="방 코드 입력">
-  <button onclick="joinRoom()">참가</button>
+<button onclick="createRoom()">방 만들기</button>
+<input id="roomInput" placeholder="방 코드 입력">
+<button onclick="joinRoom()">참가</button>
 
-  <div id="game"></div>
+<div id="game"></div>
 
-  <!-- 🔥 서버에서 socket.io 불러오기 -->
-  <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-
-  <script src="app.js"></script>
+<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
