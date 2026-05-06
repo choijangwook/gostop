@@ -2,27 +2,14 @@ body {
   background: #0b3d2e;
   color: white;
   text-align: center;
-  font-family: sans-serif;
   margin: 0;
+  font-family: sans-serif;
 }
 
-.menu {
-  padding: 10px;
-}
-
-button {
+button, input {
   padding: 12px;
   margin: 5px;
   font-size: 16px;
-}
-
-input {
-  padding: 10px;
-  font-size: 16px;
-}
-
-#game {
-  padding: 10px;
 }
 
 .cards {
@@ -42,4 +29,3 @@ input {
 .cards img:active {
   transform: scale(1.2);
 }
-
