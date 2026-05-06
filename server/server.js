@@ -11,7 +11,6 @@ const io = new Server(server, {
 
 let rooms = {};
 
-/* 카드 생성 */
 function createDeck() {
   const deck = [];
 
@@ -25,7 +24,6 @@ function createDeck() {
   return deck.sort(() => Math.random() - 0.5);
 }
 
-/* 분배 */
 function deal(deck) {
   return {
     players: [
@@ -87,7 +85,6 @@ io.on("connection", (socket) => {
     }
 
     player.splice(index, 1);
-
     state.turn = (state.turn + 1) % 2;
 
     sendState(roomId);
@@ -95,7 +92,6 @@ io.on("connection", (socket) => {
 
 });
 
-/* 상태 전송 */
 function sendState(roomId) {
   const room = rooms[roomId];
   const state = room.state;
