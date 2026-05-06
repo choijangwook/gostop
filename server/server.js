@@ -6,24 +6,79 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
+  cors: { origin: "*" }
 });
 
 let rooms = {};
 
+/* 🔥 48장 카드 생성 */
 function createDeck() {
-  const deck = [];
-  for (let i = 1; i <= 12; i++) {
-    for (let j = 0; j < 4; j++) {
-      deck.push({ month: i });
-    }
-  }
+  const deck = [
+    {month:1,file:"1_bright.png"},
+    {month:1,file:"1_ribbon.png"},
+    {month:1,file:"1_junk1.png"},
+    {month:1,file:"1_junk2.png"},
+
+    {month:2,file:"2_animal.png"},
+    {month:2,file:"2_ribbon.png"},
+    {month:2,file:"2_junk1.png"},
+    {month:2,file:"2_junk2.png"},
+
+    {month:3,file:"3_bright.png"},
+    {month:3,file:"3_ribbon.png"},
+    {month:3,file:"3_junk1.png"},
+    {month:3,file:"3_junk2.png"},
+
+    {month:4,file:"4_animal.png"},
+    {month:4,file:"4_ribbon.png"},
+    {month:4,file:"4_junk1.png"},
+    {month:4,file:"4_junk2.png"},
+
+    {month:5,file:"5_animal.png"},
+    {month:5,file:"5_ribbon.png"},
+    {month:5,file:"5_junk1.png"},
+    {month:5,file:"5_junk2.png"},
+
+    {month:6,file:"6_animal.png"},
+    {month:6,file:"6_ribbon.png"},
+    {month:6,file:"6_junk1.png"},
+    {month:6,file:"6_junk2.png"},
+
+    {month:7,file:"7_animal.png"},
+    {month:7,file:"7_ribbon.png"},
+    {month:7,file:"7_junk1.png"},
+    {month:7,file:"7_junk2.png"},
+
+    {month:8,file:"8_bright.png"},
+    {month:8,file:"8_animal.png"},
+    {month:8,file:"8_junk1.png"},
+    {month:8,file:"8_junk2.png"},
+
+    {month:9,file:"9_animal.png"},
+    {month:9,file:"9_ribbon.png"},
+    {month:9,file:"9_junk1.png"},
+    {month:9,file:"9_junk2.png"},
+
+    {month:10,file:"10_animal.png"},
+    {month:10,file:"10_ribbon.png"},
+    {month:10,file:"10_junk1.png"},
+    {month:10,file:"10_junk2.png"},
+
+    {month:11,file:"11_bright.png"},
+    {month:11,file:"11_junk1.png"},
+    {month:11,file:"11_junk2.png"},
+    {month:11,file:"11_junk3.png"},
+
+    {month:12,file:"12_bright.png"},
+    {month:12,file:"12_animal.png"},
+    {month:12,file:"12_junk1.png"},
+    {month:12,file:"12_junk2.png"}
+  ];
+
   return deck.sort(() => Math.random() - 0.5);
 }
 
-function dealCards(deck) {
+function deal(deck) {
   return {
     player1: deck.splice(0, 10),
     table: deck.splice(0, 8),
@@ -32,7 +87,6 @@ function dealCards(deck) {
 }
 
 io.on("connection", (socket) => {
-  console.log("접속:", socket.id);
 
   socket.on("createRoom", () => {
     const roomId = Math.random().toString(36).substring(7);
@@ -40,15 +94,12 @@ io.on("connection", (socket) => {
     const deck = createDeck();
 
     rooms[roomId] = {
-      players: [socket.id],
-      state: dealCards(deck)
+      state: deal(deck)
     };
 
     socket.join(roomId);
 
     socket.emit("roomCreated", roomId);
-
-    // 🔥 혼자도 바로 시작
     socket.emit("startGame", rooms[roomId].state);
   });
 
@@ -56,15 +107,10 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    room.players.push(socket.id);
     socket.join(roomId);
-
     io.to(roomId).emit("startGame", room.state);
   });
+
 });
 
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log("서버 실행:", PORT);
-});
+server.listen(process.env.PORT || 3000);
