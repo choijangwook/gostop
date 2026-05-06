@@ -1,6 +1,7 @@
 const socket = io("https://gostop-server.onrender.com");
 
 let state = null;
+let captured = []; // 먹은 카드
 
 function createRoom() {
   socket.emit("createRoom");
@@ -20,24 +21,70 @@ socket.on("startGame", (gameState) => {
   render();
 });
 
-/* 🔥 카드 플레이 */
+/* 🔥 핵심 룰 처리 */
 function playCard(index) {
   const card = state.player1[index];
 
-  // 같은 월 카드 찾기
-  const matches = state.table.filter(c => c.month === card.month);
+  const sameMonth = state.table.filter(c => c.month === card.month);
 
-  if (matches.length > 0) {
-    // 전부 가져오기
+  // 🔥 1. 폭탄 (3장)
+  if (sameMonth.length === 3) {
+    captured.push(card, ...sameMonth);
     state.table = state.table.filter(c => c.month !== card.month);
-    alert(`${card.month}월 카드 먹음 (${matches.length + 1}장)`);
+    alert("💣 폭탄!");
+  }
+
+  // 🔥 2. 따닥 (2장)
+  else if (sameMonth.length === 2) {
+    captured.push(card, ...sameMonth);
+    state.table = state.table.filter(c => c.month !== card.month);
+    alert("🔥 따닥!");
+  }
+
+  // 🔥 3. 쌍 (1장)
+  else if (sameMonth.length === 1) {
+    captured.push(card, sameMonth[0]);
+    state.table = state.table.filter(c => c !== sameMonth[0]);
+    alert("👊 쌍!");
+  }
+
+  // 🔥 4. 없음 → 바닥에 카드 놓기
+  else {
+    state.table.push(card);
+
+    // 🔥 쪽 / 끗 판단 (같은 월 2장 생성 체크)
+    const after = state.table.filter(c => c.month === card.month);
+
+    if (after.length === 2) {
+      alert("⚡ 쪽!");
+    } else {
+      alert("😐 끗");
+    }
+  }
+
+  // 카드 제거
+  state.player1.splice(index, 1);
+
+  // 🔥 보너스: 한 장 뽑기 (draw)
+  if (state.draw.length > 0) {
+    const drawCard = state.draw.shift();
+    processDraw(drawCard);
+  }
+
+  render();
+}
+
+/* 🔥 뽑기 처리 */
+function processDraw(card) {
+  const sameMonth = state.table.filter(c => c.month === card.month);
+
+  if (sameMonth.length > 0) {
+    captured.push(card, ...sameMonth);
+    state.table = state.table.filter(c => c.month !== card.month);
+    alert(`🎯 뽑기 성공 (${card.month})`);
   } else {
     state.table.push(card);
   }
-
-  state.player1.splice(index, 1);
-
-  render();
 }
 
 /* 🔥 렌더링 */
@@ -52,6 +99,11 @@ function render() {
 
     <h3>바닥</h3>
     ${state.table.map(c => `
+      <img src="cards/${c.file}">
+    `).join("")}
+
+    <h3>먹은 카드 (${captured.length})</h3>
+    ${captured.map(c => `
       <img src="cards/${c.file}">
     `).join("")}
   `;
