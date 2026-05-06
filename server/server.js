@@ -11,78 +11,30 @@ const io = new Server(server, {
 
 let rooms = {};
 
-/* 🔥 48장 카드 생성 */
+/* 카드 생성 */
 function createDeck() {
-  const deck = [
-    {month:1,file:"1_bright.png"},
-    {month:1,file:"1_ribbon.png"},
-    {month:1,file:"1_junk1.png"},
-    {month:1,file:"1_junk2.png"},
+  const deck = [];
 
-    {month:2,file:"2_animal.png"},
-    {month:2,file:"2_ribbon.png"},
-    {month:2,file:"2_junk1.png"},
-    {month:2,file:"2_junk2.png"},
-
-    {month:3,file:"3_bright.png"},
-    {month:3,file:"3_ribbon.png"},
-    {month:3,file:"3_junk1.png"},
-    {month:3,file:"3_junk2.png"},
-
-    {month:4,file:"4_animal.png"},
-    {month:4,file:"4_ribbon.png"},
-    {month:4,file:"4_junk1.png"},
-    {month:4,file:"4_junk2.png"},
-
-    {month:5,file:"5_animal.png"},
-    {month:5,file:"5_ribbon.png"},
-    {month:5,file:"5_junk1.png"},
-    {month:5,file:"5_junk2.png"},
-
-    {month:6,file:"6_animal.png"},
-    {month:6,file:"6_ribbon.png"},
-    {month:6,file:"6_junk1.png"},
-    {month:6,file:"6_junk2.png"},
-
-    {month:7,file:"7_animal.png"},
-    {month:7,file:"7_ribbon.png"},
-    {month:7,file:"7_junk1.png"},
-    {month:7,file:"7_junk2.png"},
-
-    {month:8,file:"8_bright.png"},
-    {month:8,file:"8_animal.png"},
-    {month:8,file:"8_junk1.png"},
-    {month:8,file:"8_junk2.png"},
-
-    {month:9,file:"9_animal.png"},
-    {month:9,file:"9_ribbon.png"},
-    {month:9,file:"9_junk1.png"},
-    {month:9,file:"9_junk2.png"},
-
-    {month:10,file:"10_animal.png"},
-    {month:10,file:"10_ribbon.png"},
-    {month:10,file:"10_junk1.png"},
-    {month:10,file:"10_junk2.png"},
-
-    {month:11,file:"11_bright.png"},
-    {month:11,file:"11_junk1.png"},
-    {month:11,file:"11_junk2.png"},
-    {month:11,file:"11_junk3.png"},
-
-    {month:12,file:"12_bright.png"},
-    {month:12,file:"12_animal.png"},
-    {month:12,file:"12_junk1.png"},
-    {month:12,file:"12_junk2.png"}
-  ];
+  for (let m = 1; m <= 12; m++) {
+    deck.push({month:m, file:`${m}_junk1.png`});
+    deck.push({month:m, file:`${m}_junk2.png`});
+    deck.push({month:m, file:`${m}_ribbon.png`});
+    deck.push({month:m, file:`${m}_animal.png`});
+  }
 
   return deck.sort(() => Math.random() - 0.5);
 }
 
+/* 분배 */
 function deal(deck) {
   return {
-    player1: deck.splice(0, 10),
+    players: [
+      deck.splice(0, 10),
+      deck.splice(0, 10)
+    ],
     table: deck.splice(0, 8),
-    draw: deck
+    draw: deck,
+    turn: 0
   };
 }
 
@@ -91,26 +43,71 @@ io.on("connection", (socket) => {
   socket.on("createRoom", () => {
     const roomId = Math.random().toString(36).substring(7);
 
-    const deck = createDeck();
-
     rooms[roomId] = {
-      state: deal(deck)
+      users: [socket.id],
+      state: null
     };
 
     socket.join(roomId);
-
     socket.emit("roomCreated", roomId);
-    socket.emit("startGame", rooms[roomId].state);
   });
 
   socket.on("joinRoom", (roomId) => {
     const room = rooms[roomId];
     if (!room) return;
 
+    room.users.push(socket.id);
     socket.join(roomId);
-    io.to(roomId).emit("startGame", room.state);
+
+    const deck = createDeck();
+    room.state = deal(deck);
+
+    sendState(roomId);
+  });
+
+  socket.on("playCard", (index) => {
+    const roomId = [...socket.rooms][1];
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const state = room.state;
+    const playerIndex = room.users.indexOf(socket.id);
+
+    if (state.turn !== playerIndex) return;
+
+    const player = state.players[playerIndex];
+    const card = player[index];
+
+    const same = state.table.filter(c => c.month === card.month);
+
+    if (same.length > 0) {
+      state.table = state.table.filter(c => c.month !== card.month);
+    } else {
+      state.table.push(card);
+    }
+
+    player.splice(index, 1);
+
+    state.turn = (state.turn + 1) % 2;
+
+    sendState(roomId);
   });
 
 });
+
+/* 상태 전송 */
+function sendState(roomId) {
+  const room = rooms[roomId];
+  const state = room.state;
+
+  room.users.forEach((id, i) => {
+    io.to(id).emit("updateGame", {
+      player: state.players[i],
+      opponentCount: state.players[1 - i].length,
+      table: state.table,
+      turn: room.users[state.turn]
+    });
+  });
+}
 
 server.listen(process.env.PORT || 3000);
