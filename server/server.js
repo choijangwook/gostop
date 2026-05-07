@@ -28,47 +28,8 @@ function createDeck() {
 }
 
 // =========================
-function createSpecial() {
-  return [
-    "special1_draw.png",
-    "special2_draw.png",
-    "special3_draw.png"
-  ];
-}
-
-// =========================
-// 점수 엔진
-// =========================
-function calculateScore(cards) {
-
-  let score = 0;
-
-  const bright = cards.filter(c => c.includes("bright"));
-  if (bright.length >= 5) score += 15;
-  else if (bright.length === 4) score += 4;
-  else if (bright.length === 3) score += 2;
-
-  const gokdori = ["2_animal.png", "4_animal.png", "8_animal.png"];
-  if (gokdori.every(c => cards.includes(c))) score += 5;
-
-  const cheongdan = ["6_ribbon.png", "9_ribbon.png", "10_ribbon.png"];
-  if (cheongdan.every(c => cards.includes(c))) score += 3;
-
-  const hongdan = ["1_ribbon.png", "2_ribbon.png", "3_ribbon.png"];
-  if (hongdan.every(c => cards.includes(c))) score += 3;
-
-  const chodan = ["4_ribbon.png", "5_ribbon.png", "7_ribbon.png"];
-  if (chodan.every(c => cards.includes(c))) score += 3;
-
-  const animals = cards.filter(c => c.includes("animal"));
-  if (animals.length >= 5) {
-    score += (animals.length - 4);
-  }
-
-  const doublePi = cards.filter(c => c === "DOUBLE_PI");
-  score += doublePi.length * 2;
-
-  return score;
+function createAI() {
+  return "AI_" + Math.random().toString(36).substr(2, 5);
 }
 
 // =========================
@@ -77,19 +38,37 @@ function emitState(roomId) {
   const room = rooms[roomId];
   if (!room) return;
 
-  const score = {};
-
-  for (const pid in room.captured) {
-    score[pid] = calculateScore(room.captured[pid]);
-  }
-
   io.to(roomId).emit("stateUpdate", {
     roomId,
     table: room.table,
     hands: room.hands,
-    captured: room.captured,
-    score
+    captured: room.captured
   });
+}
+
+// =========================
+function aiMove(roomId) {
+
+  const room = rooms[roomId];
+  if (!room) return;
+
+  const ai = room.ai;
+
+  const hand = room.hands[ai];
+  const table = room.table;
+
+  if (!hand.length || !table.length) return;
+
+  const randomHand = hand[Math.floor(Math.random() * hand.length)];
+  const randomTable = table[Math.floor(Math.random() * table.length)];
+
+  // 제거
+  hand.splice(hand.indexOf(randomHand), 1);
+  table.splice(table.indexOf(randomTable), 1);
+
+  room.captured[ai].push(randomTable);
+
+  emitState(roomId);
 }
 
 // =========================
@@ -103,15 +82,20 @@ io.on("connection", (socket) => {
 
       const deck = createDeck();
 
+      const ai = createAI();
+
       rooms[roomId] = {
         players: [],
+        ai,
         table: deck.splice(0, 6),
         deck,
-        specialDeck: createSpecial(),
         hands: {},
-        captured: {},
-        selectedHand: {}
+        captured: {}
       };
+
+      // AI 초기 패
+      rooms[roomId].hands[ai] = deck.splice(0, 5);
+      rooms[roomId].captured[ai] = [];
     }
 
     const room = rooms[roomId];
@@ -122,83 +106,55 @@ io.on("connection", (socket) => {
       room.players.push(socket.id);
     }
 
-    const handSize = room.players.length === 2 ? 10 :
-                      room.players.length === 3 ? 7 : 5;
-
     if (!room.hands[socket.id]) {
-      room.hands[socket.id] = room.deck.splice(0, handSize);
+      room.hands[socket.id] = room.deck.splice(0, 5);
     }
 
     if (!room.captured[socket.id]) {
       room.captured[socket.id] = [];
     }
 
-    room.selectedHand[socket.id] = null;
-
     emitState(roomId);
   });
 
   // =========================
-  // Hand 선택
-  // =========================
   socket.on("selectHand", ({ roomId, card }) => {
-
     const room = rooms[roomId];
     if (!room) return;
 
+    room.selectedHand = room.selectedHand || {};
     room.selectedHand[socket.id] = card;
   });
 
-  // =========================
-  // Table 클릭 (먹기)
   // =========================
   socket.on("takeCard", ({ roomId, tableCard }) => {
 
     const room = rooms[roomId];
     if (!room) return;
 
-    const selected = room.selectedHand[socket.id];
+    const hand = room.hands[socket.id];
+    const selected = room.selectedHand?.[socket.id];
 
-    // 🔥 선택 없으면 무조건 차단
     if (!selected) return;
 
-    const tableIndex = room.table.indexOf(tableCard);
-    if (tableIndex === -1) return;
+    const ti = room.table.indexOf(tableCard);
+    if (ti === -1) return;
 
-    const hand = room.hands[socket.id];
-    const handIndex = hand.indexOf(selected);
+    const hi = hand.indexOf(selected);
+    if (hi !== -1) hand.splice(hi, 1);
 
-    if (handIndex !== -1) {
-      hand.splice(handIndex, 1);
-    }
-
-    room.table.splice(tableIndex, 1);
+    room.table.splice(ti, 1);
 
     room.captured[socket.id].push(tableCard);
 
-    room.selectedHand[socket.id] = null;
-
     emitState(roomId);
-  });
 
-  // =========================
-  socket.on("useSpecial", ({ roomId }) => {
-
-    const room = rooms[roomId];
-    if (!room) return;
-
-    const hand = room.hands[socket.id];
-
-    const drawn = room.deck.shift();
-    if (drawn) hand.push(drawn);
-
-    room.captured[socket.id].push("DOUBLE_PI");
-
-    emitState(roomId);
+    // 🔥 AI 턴 자동 실행
+    setTimeout(() => aiMove(roomId), 800);
   });
 
 });
 
 server.listen(10000, () => {
-  console.log("server running");
+  console.log("AI GoStop server running");
 });
