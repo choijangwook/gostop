@@ -29,3 +29,21 @@ button, input {
 .cards img:active {
   transform: scale(1.2);
 }
+
+
+.table,
+.hand {
+  margin-top: 20px;
+}
+
+.cards {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cards img {
+  width: 70px;
+  margin: 5px;
+  border-radius: 8px;
+}
