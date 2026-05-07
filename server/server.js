@@ -11,26 +11,43 @@ const io = socketIo(server, {
 
 app.use(express.static("docs"));
 
-const rooms = {};
-
+// =========================
+// 🎴 정확한 덱 (48장)
 // =========================
 function createDeck() {
-  const deck = [];
 
-  for (let i = 1; i <= 12; i++) {
-    deck.push(`${i}_bright.png`);
-    deck.push(`${i}_animal.png`);
-    deck.push(`${i}_ribbon.png`);
-    deck.push(`${i}_junk1.png`);
-  }
+  const deck = [
+
+    "1_bright.png","1_ribbon.png","1_junk1.png","1_junk2.png",
+
+    "2_animal.png","2_ribbon.png","2_junk1.png","2_junk2.png",
+
+    "3_bright.png","3_ribbon.png","3_junk1.png","3_junk2.png",
+
+    "4_animal.png","4_ribbon.png","4_junk1.png","4_junk2.png",
+
+    "5_animal.png","5_ribbon.png","5_junk1.png","5_junk2.png",
+
+    "6_animal.png","6_ribbon.png","6_junk1.png","6_junk2.png",
+
+    "7_animal.png","7_ribbon.png","7_junk1.png","7_junk2.png",
+
+    "8_bright.png","8_animal.png","8_junk1.png","8_junk2.png",
+
+    "9_animal.png","9_ribbon.png","9_junk1.png","9_junk2.png",
+
+    "10_animal.png","10_ribbon.png","10_junk1.png","10_junk2.png",
+
+    "11_bright.png","11_junk1.png","11_junk2.png","11_junk3.png",
+
+    "12_bright.png","12_animal.png","12_ribbon.png","12_junk1.png"
+  ];
 
   return deck.sort(() => Math.random() - 0.5);
 }
 
 // =========================
-function createAI() {
-  return "AI_" + Math.random().toString(36).substr(2, 5);
-}
+const rooms = {};
 
 // =========================
 function emitState(roomId) {
@@ -47,31 +64,6 @@ function emitState(roomId) {
 }
 
 // =========================
-function aiMove(roomId) {
-
-  const room = rooms[roomId];
-  if (!room) return;
-
-  const ai = room.ai;
-
-  const hand = room.hands[ai];
-  const table = room.table;
-
-  if (!hand.length || !table.length) return;
-
-  const randomHand = hand[Math.floor(Math.random() * hand.length)];
-  const randomTable = table[Math.floor(Math.random() * table.length)];
-
-  // 제거
-  hand.splice(hand.indexOf(randomHand), 1);
-  table.splice(table.indexOf(randomTable), 1);
-
-  room.captured[ai].push(randomTable);
-
-  emitState(roomId);
-}
-
-// =========================
 io.on("connection", (socket) => {
 
   socket.on("joinRoom", ({ roomId }) => {
@@ -82,20 +74,14 @@ io.on("connection", (socket) => {
 
       const deck = createDeck();
 
-      const ai = createAI();
-
       rooms[roomId] = {
         players: [],
-        ai,
         table: deck.splice(0, 6),
         deck,
         hands: {},
-        captured: {}
+        captured: {},
+        selectedHand: {}
       };
-
-      // AI 초기 패
-      rooms[roomId].hands[ai] = deck.splice(0, 5);
-      rooms[roomId].captured[ai] = [];
     }
 
     const room = rooms[roomId];
@@ -114,6 +100,8 @@ io.on("connection", (socket) => {
       room.captured[socket.id] = [];
     }
 
+    room.selectedHand[socket.id] = null;
+
     emitState(roomId);
   });
 
@@ -122,7 +110,6 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    room.selectedHand = room.selectedHand || {};
     room.selectedHand[socket.id] = card;
   });
 
@@ -132,29 +119,28 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    const hand = room.hands[socket.id];
-    const selected = room.selectedHand?.[socket.id];
-
+    const selected = room.selectedHand[socket.id];
     if (!selected) return;
 
     const ti = room.table.indexOf(tableCard);
     if (ti === -1) return;
 
+    const hand = room.hands[socket.id];
     const hi = hand.indexOf(selected);
+
     if (hi !== -1) hand.splice(hi, 1);
 
     room.table.splice(ti, 1);
 
     room.captured[socket.id].push(tableCard);
 
-    emitState(roomId);
+    room.selectedHand[socket.id] = null;
 
-    // 🔥 AI 턴 자동 실행
-    setTimeout(() => aiMove(roomId), 800);
+    emitState(roomId);
   });
 
 });
 
 server.listen(10000, () => {
-  console.log("AI GoStop server running");
+  console.log("server running");
 });
