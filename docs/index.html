@@ -9,43 +9,26 @@
 
 <body>
 
-<h2>GoStop Room</h2>
+<h2>GoStop</h2>
 
-<!-- 방 참가 -->
-<input id="roomInput" placeholder="3자리 방 번호 (예: 123)">
+<input id="roomInput" placeholder="방 번호 (123)">
 <button onclick="joinRoom()">참가</button>
 
-<p>Room ID: <span id="roomId"></span></p>
+<p>Room: <span id="roomId"></span></p>
 
-<hr>
-
-<!-- 플레이어 리스트 -->
 <h3>Players</h3>
 <ul id="players"></ul>
 
 <hr>
 
-<!-- 게임 영역 -->
 <h3>Table</h3>
 <div id="table"></div>
 
 <h3>My Hand</h3>
 <div id="hand"></div>
 
-<hr>
-
-<!-- Share (있어도 되고 없어도 됨) -->
-<button id="shareBtn">Share</button>
-
-<div id="shareModal" style="display:none;">
-  <button id="closeModal">Close</button>
-  Share this room!
-</div>
-
-<!-- socket -->
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
 <script src="app.js"></script>
-<script src="share-modal.js"></script>
 
 </body>
 </html>
