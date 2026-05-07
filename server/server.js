@@ -61,7 +61,7 @@ function createCards() {
 
 
 // =========================
-// 숫자 3자리 방번호 생성
+// 숫자 3자리 방번호
 // =========================
 function generateRoomId() {
 
@@ -119,7 +119,7 @@ function sendState(roomId) {
 
 
 // =========================
-// socket 연결
+// 연결
 // =========================
 io.on("connection", (socket) => {
 
@@ -241,7 +241,7 @@ io.on("connection", (socket) => {
         ? room.hostCapture
         : room.guestCapture;
 
-    // 🔥 카드 id로 찾기
+    // 🔥 카드 찾기
     const cardIndex =
       hand.findIndex(
         c => c.id === cardId
@@ -256,42 +256,63 @@ io.on("connection", (socket) => {
 
     const card = hand[cardIndex];
 
-    // 같은 month 찾기
-    const sameIndex =
-      room.table.findIndex(
+    console.log("낸 카드:", card);
+
+    // =========================
+    // 같은 month 카드 모두 찾기
+    // =========================
+    const matchedCards =
+      room.table.filter(
         c => c.month === card.month
       );
 
+    // =========================
     // 먹기
-    if (sameIndex >= 0) {
+    // =========================
+    if (matchedCards.length > 0) {
 
+      console.log("먹기 성공");
+
+      // 낸 카드 먹은패로
       capture.push(card);
 
-      capture.push(
-        room.table[sameIndex]
-      );
+      // 같은 month 전부 먹기
+      matchedCards.forEach(c => {
+        capture.push(c);
+      });
 
-      room.table.splice(sameIndex, 1);
-
-      console.log("먹음:", card.file);
+      // 바닥에서 제거
+      room.table =
+        room.table.filter(
+          c => c.month !== card.month
+        );
 
     } else {
 
-      // 바닥에 놓기
-      room.table.push(card);
+      // =========================
+      // 못 먹으면 바닥에 놓기
+      // =========================
+      console.log("바닥에 내려놓음");
 
-      console.log("바닥에 놓음:", card.file);
+      room.table.push(card);
     }
 
+    // =========================
     // 손패 제거
+    // =========================
     hand.splice(cardIndex, 1);
 
+    // =========================
     // 턴 변경
+    // =========================
     room.turn =
       isHost
         ? room.guest
         : room.host;
 
+    // =========================
+    // 상태 전송
+    // =========================
     sendState(roomId);
   });
 
