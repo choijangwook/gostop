@@ -5,28 +5,30 @@ const socketIo = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 
-// 🔥 핵심: CORS 허용 추가
 const io = socketIo(server, {
   cors: {
-    origin: "*",   // 또는 "https://choijangwook.github.io"
-    methods: ["GET", "POST"]
+    origin: "*"
   }
-}); 
+});
 
 app.use(express.static("docs"));
 
 const rooms = {};
 
+// =========================
 io.on("connection", (socket) => {
 
   console.log("접속:", socket.id);
 
+  // =========================
   socket.on("joinRoom", ({ roomId }) => {
 
     roomId = Number(roomId);
 
     if (!rooms[roomId]) {
-      rooms[roomId] = { players: [] };
+      rooms[roomId] = {
+        players: []
+      };
     }
 
     socket.join(roomId);
@@ -35,10 +37,20 @@ io.on("connection", (socket) => {
       rooms[roomId].players.push(socket.id);
     }
 
+    console.log("join:", roomId, rooms[roomId].players);
+
     io.to(roomId).emit("stateUpdate", {
       roomId,
       players: rooms[roomId].players
     });
+  });
+
+  // =========================
+  socket.on("disconnect", () => {
+    for (const roomId in rooms) {
+      rooms[roomId].players =
+        rooms[roomId].players.filter(id => id !== socket.id);
+    }
   });
 
 });
