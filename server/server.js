@@ -1,19 +1,3 @@
-# 다음 단계: 진짜 고스톱 흐름 추가
-
-추가된 기능:
-
-* 패를 내면 자동으로 덱에서 1장 드로우
-* 드로우 카드도 자동 먹기 판정
-* 턴 유지
-* 남은 덱 표시
-* 현재 턴 표시
-* 게임 종료 판정
-
----
-
-# 📁 server/server.js
-
-```javascript
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
@@ -108,6 +92,21 @@ function createDeck() {
 const rooms = {};
 
 // =========================
+function emitState(roomId) {
+
+  const room = rooms[roomId];
+  if (!room) return;
+
+  io.to(roomId).emit("stateUpdate", {
+    roomId,
+    table: room.table,
+    hands: room.hands,
+    captured: room.captured,
+    turn: room.turn
+  });
+}
+
+// =========================
 function nextTurn(room) {
 
   if (room.players.length === 0) return;
@@ -119,46 +118,6 @@ function nextTurn(room) {
   }
 
   room.turn = room.players[room.turnIndex];
-}
-
-// =========================
-function captureCard(room, playerId, card) {
-
-  const month = card.split("_")[0];
-
-  const matchIndex = room.table.findIndex(
-    c => c.startsWith(month + "_")
-  );
-
-  // 먹기 성공
-  if (matchIndex !== -1) {
-
-    const matched = room.table.splice(matchIndex, 1)[0];
-
-    room.captured[playerId].push(card);
-    room.captured[playerId].push(matched);
-
-  } else {
-
-    room.table.push(card);
-  }
-}
-
-// =========================
-function emitState(roomId) {
-
-  const room = rooms[roomId];
-  if (!room) return;
-
-  io.to(roomId).emit("stateUpdate", {
-    roomId,
-    table: room.table,
-    hands: room.hands,
-    captured: room.captured,
-    turn: room.turn,
-    deckCount: room.deck.length,
-    gameOver: room.deck.length === 0
-  });
 }
 
 // =========================
@@ -196,6 +155,7 @@ io.on("connection", (socket) => {
       room.players.push(socket.id);
     }
 
+    // 첫 턴 지정
     if (!room.turn) {
       room.turn = socket.id;
     }
@@ -219,7 +179,7 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    // 턴 아닐 경우 차단
+    // 🔥 내 턴 아닐 경우 차단
     if (room.turn !== socket.id) return;
 
     const hand = room.hands[socket.id];
@@ -229,7 +189,6 @@ io.on("connection", (socket) => {
 
     if (handIndex === -1) return;
 
-    // 손패 제거
     hand.splice(handIndex, 1);
 
     // =========================
@@ -239,10 +198,10 @@ io.on("connection", (socket) => {
 
       room.captured[socket.id].push(card);
 
-      const extra = room.deck.shift();
+      const draw = room.deck.shift();
 
-      if (extra) {
-        hand.push(extra);
+      if (draw) {
+        hand.push(draw);
       }
 
       nextTurn(room);
@@ -253,24 +212,32 @@ io.on("connection", (socket) => {
     }
 
     // =========================
-    // 1차 먹기
+    // 월 찾기
     // =========================
-    captureCard(room, socket.id, card);
+    const month = card.split("_")[0];
+
+    const matchIndex = room.table.findIndex(
+      c => c.startsWith(month + "_")
+    );
 
     // =========================
-    // 드로우
+    // 먹기 성공
     // =========================
-    const drawCard = room.deck.shift();
+    if (matchIndex !== -1) {
 
-    if (drawCard) {
+      const matched =
+        room.table.splice(matchIndex, 1)[0];
 
-      // 드로우 카드 먹기 처리
-      captureCard(room, socket.id, drawCard);
+      room.captured[socket.id].push(card);
+      room.captured[socket.id].push(matched);
+
+    } else {
+
+      // 못 먹으면 바닥으로
+      room.table.push(card);
     }
 
-    // =========================
-    // 턴 변경
-    // =========================
+    // 🔥 턴 변경
     nextTurn(room);
 
     emitState(roomId);
@@ -291,11 +258,13 @@ io.on("connection", (socket) => {
       delete room.hands[socket.id];
       delete room.captured[socket.id];
 
+      // 턴 보정
       if (room.turn === socket.id) {
 
         room.turnIndex = 0;
 
-        room.turn = room.players[0] || null;
+        room.turn =
+          room.players[0] || null;
       }
 
       if (room.players.length === 0) {
@@ -312,313 +281,3 @@ io.on("connection", (socket) => {
 server.listen(10000, () => {
   console.log("🎴 Gostop 서버 실행중");
 });
-```
-
----
-
-# 📁 docs/app.js
-
-```javascript
-const socket =
-  io("https://gostop-server.onrender.com");
-
-let state = null;
-
-let myId = null;
-
-// =========================
-socket.on("connect", () => {
-
-  myId = socket.id;
-
-  console.log("connected:", myId);
-});
-
-// =========================
-function joinRoom() {
-
-  const roomId =
-    Number(
-      document.getElementById("roomInput").value
-    );
-
-  if (!roomId) return;
-
-  socket.emit("joinRoom", {
-    roomId
-  });
-
-  document.getElementById("lobby")
-    .style.display = "none";
-}
-
-// =========================
-socket.on("stateUpdate", (s) => {
-
-  state = s;
-
-  // 턴 표시
-  const turnText =
-    state.turn === myId
-      ? "🟢 내 턴"
-      : "⏳ 상대 턴";
-
-  document.getElementById("turn")
-    .innerText = turnText;
-
-  // 남은 카드
-  document.getElementById("deck")
-    .innerText = `Deck : ${state.deckCount}`;
-
-  // 게임 종료
-  if (state.gameOver) {
-
-    document.getElementById("turn")
-      .innerText = "🎉 게임 종료";
-  }
-
-  renderTable();
-  renderHand();
-  renderCaptured();
-});
-
-// =========================
-// Table
-// =========================
-function renderTable() {
-
-  const el =
-    document.getElementById("table");
-
-  el.innerHTML = "";
-
-  (state.table || []).forEach(card => {
-
-    const img =
-      document.createElement("img");
-
-    img.src = "cards/" + card;
-
-    el.appendChild(img);
-  });
-}
-
-// =========================
-// My Hand
-// =========================
-function renderHand() {
-
-  const el =
-    document.getElementById("hand");
-
-  el.innerHTML = "";
-
-  const hand =
-    state.hands?.[myId] || [];
-
-  hand.forEach(card => {
-
-    const img =
-      document.createElement("img");
-
-    img.src = "cards/" + card;
-
-    img.onclick = () => {
-
-      // 내 턴 아닐 때 차단
-      if (state.turn !== myId) return;
-
-      socket.emit("playCard", {
-        roomId: state.roomId,
-        card
-      });
-    };
-
-    el.appendChild(img);
-  });
-}
-
-// =========================
-// Captured
-// =========================
-function renderCaptured() {
-
-  const el =
-    document.getElementById("captured");
-
-  el.innerHTML = "";
-
-  const captured =
-    state.captured?.[myId] || [];
-
-  captured.forEach(card => {
-
-    const img =
-      document.createElement("img");
-
-    img.src = "cards/" + card;
-
-    img.style.width = "35px";
-
-    el.appendChild(img);
-  });
-}
-```
-
----
-
-# 📁 docs/index.html
-
-```html
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8" />
-
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, user-scalable=no"
-/>
-
-<title>GoStop</title>
-
-<style>
-
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #2f4f2f;
-  color: white;
-  font-family: sans-serif;
-}
-
-#wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  padding-top: 40px;
-
-  height: 100vh;
-  box-sizing: border-box;
-}
-
-#lobby {
-  margin-bottom: 15px;
-}
-
-#game {
-  width: 100%;
-  max-width: 500px;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-
-  gap: 12px;
-}
-
-#turn,
-#deck {
-  margin: 0;
-}
-
-#table,
-#hand,
-#captured {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  justify-content: center;
-
-  gap: 6px;
-
-  min-height: 70px;
-}
-
-img {
-  width: 60px;
-
-  user-select: none;
-  -webkit-user-drag: none;
-
-  touch-action: manipulation;
-}
-
-#hand img {
-  width: 65px;
-}
-
-#captured img {
-  width: 35px;
-}
-
-button {
-  padding: 10px 15px;
-  font-size: 16px;
-}
-
-input {
-  padding: 10px;
-  width: 120px;
-  text-align: center;
-  font-size: 16px;
-}
-
-h3, h4 {
-  margin: 4px;
-}
-
-</style>
-</head>
-
-<body>
-
-<div id="wrap">
-
-  <div id="lobby">
-
-    <input
-      id="roomInput"
-      maxlength="3"
-      placeholder="123"
-    >
-
-    <button onclick="joinRoom()">
-      참가
-    </button>
-
-  </div>
-
-  <div id="game">
-
-    <h3 id="turn">
-      대기중...
-    </h3>
-
-    <h4 id="deck">
-      Deck : 0
-    </h4>
-
-    <h4>Table</h4>
-    <div id="table"></div>
-
-    <h4>My Hand</h4>
-    <div id="hand"></div>
-
-    <h4>Captured</h4>
-    <div id="captured"></div>
-
-  </div>
-
-</div>
-
-<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-
-<script src="app.js"></script>
-
-</body>
-</html>
-```
