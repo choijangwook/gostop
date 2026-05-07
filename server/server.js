@@ -14,7 +14,7 @@ app.use(express.static("docs"));
 const rooms = {};
 
 // =========================
-// 카드 덱
+// 카드 덱 (48장)
 // =========================
 function createDeck() {
   const deck = [];
@@ -30,7 +30,7 @@ function createDeck() {
 }
 
 // =========================
-// 특수 카드
+// 특수카드 3장
 // =========================
 function createSpecial() {
   return [
@@ -41,44 +41,103 @@ function createSpecial() {
 }
 
 // =========================
-// 점수 계산
+// 🧠 점수 엔진
 // =========================
-function calcScore(cards) {
+function calculateScore(cards) {
+
   let score = 0;
 
-  for (const c of cards) {
-    if (c === "DOUBLE_PI") {
-      score += 2;
-      continue;
-    }
+  // =====================
+  // 🌟 광 (bright)
+  // =====================
+  const bright = cards.filter(c => c.includes("bright"));
 
-    if (c.includes("bright")) score += 3;
-    else if (c.includes("ribbon")) score += 2;
-    else score += 1;
+  if (bright.length >= 5) score += 15;
+  else if (bright.length === 4) score += 4;
+  else if (bright.length === 3) score += 2;
+
+  // =====================
+  // 🟢 고돌이
+  // =====================
+  const gokdori = ["2_animal.png", "4_animal.png", "8_animal.png"];
+  if (gokdori.every(c => cards.includes(c))) {
+    score += 5;
   }
+
+  // =====================
+  // 🔵 청단
+  // =====================
+  const cheongdan = ["6_ribbon.png", "9_ribbon.png", "10_ribbon.png"];
+  if (cheongdan.every(c => cards.includes(c))) {
+    score += 3;
+  }
+
+  // =====================
+  // 🔴 홍단
+  // =====================
+  const hongdan = ["1_ribbon.png", "2_ribbon.png", "3_ribbon.png"];
+  if (hongdan.every(c => cards.includes(c))) {
+    score += 3;
+  }
+
+  // =====================
+  // 🟡 초단
+  // =====================
+  const chodan = ["4_ribbon.png", "5_ribbon.png", "7_ribbon.png"];
+  if (chodan.every(c => cards.includes(c))) {
+    score += 3;
+  }
+
+  // =====================
+  // 🐒 멍텅
+  // =====================
+  const animals = cards.filter(c => c.includes("animal"));
+
+  if (animals.length >= 5) {
+    score += (animals.length - 4);
+  }
+
+  // =====================
+  // 🟣 특수 점수 (쌍피)
+  // =====================
+  const doublePi = cards.filter(c => c === "DOUBLE_PI");
+  score += doublePi.length * 2;
 
   return score;
 }
 
 // =========================
+// 상태 전송
+// =========================
 function emitState(roomId) {
+
   const room = rooms[roomId];
   if (!room) return;
+
+  const score = {};
+
+  for (const pid in room.captured) {
+    score[pid] = calculateScore(room.captured[pid]);
+  }
 
   io.to(roomId).emit("stateUpdate", {
     roomId,
     players: room.players,
     table: room.table,
     hands: room.hands,
-    score: room.score
+    score
   });
 }
 
+// =========================
+// socket
 // =========================
 io.on("connection", (socket) => {
 
   console.log("connect:", socket.id);
 
+  // =========================
+  // 방 참가
   // =========================
   socket.on("joinRoom", ({ roomId }) => {
 
@@ -94,8 +153,7 @@ io.on("connection", (socket) => {
         deck,
         specialDeck: createSpecial(),
         hands: {},
-        captured: {},
-        score: {}
+        captured: {}
       };
     }
 
@@ -115,10 +173,6 @@ io.on("connection", (socket) => {
       room.captured[socket.id] = [];
     }
 
-    if (!room.score[socket.id]) {
-      room.score[socket.id] = 0;
-    }
-
     emitState(roomId);
   });
 
@@ -130,46 +184,37 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    const hand = room.hands[socket.id];
-    if (!hand) return;
-
     const index = room.table.indexOf(card);
     if (index === -1) return;
 
     room.table.splice(index, 1);
 
-    hand.push(card);
+    room.hands[socket.id].push(card);
     room.captured[socket.id].push(card);
-
-    room.score[socket.id] = calcScore(room.captured[socket.id]);
 
     emitState(roomId);
   });
 
   // =========================
-  // 특수 카드
+  // 특수카드
   // =========================
   socket.on("useSpecial", ({ roomId }) => {
 
     const room = rooms[roomId];
     if (!room) return;
 
-    const card = room.specialDeck.shift();
-    if (!card) return;
-
     const hand = room.hands[socket.id];
-    if (!hand) return;
 
     const drawn = room.deck.shift();
     if (drawn) hand.push(drawn);
 
     room.captured[socket.id].push("DOUBLE_PI");
 
-    room.score[socket.id] = calcScore(room.captured[socket.id]);
-
     emitState(roomId);
   });
 
+  // =========================
+  // disconnect
   // =========================
   socket.on("disconnect", () => {
 
@@ -181,7 +226,6 @@ io.on("connection", (socket) => {
 
       delete room.hands[socket.id];
       delete room.captured[socket.id];
-      delete room.score[socket.id];
 
       emitState(roomId);
     }
