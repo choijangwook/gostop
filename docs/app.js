@@ -2,12 +2,11 @@ const socket = io("https://gostop-server.onrender.com");
 
 let state = null;
 let myId = null;
+let selectedHand = null;
 
 socket.on("connect", () => {
   myId = socket.id;
 });
-
-let selected = null;
 
 // =========================
 function joinRoom() {
@@ -15,7 +14,6 @@ function joinRoom() {
 
   socket.emit("joinRoom", { roomId });
 
-  // 🔥 로비 제거 (모바일 최적화)
   document.getElementById("lobby").style.display = "none";
 }
 
@@ -29,7 +27,7 @@ socket.on("stateUpdate", (s) => {
 });
 
 // =========================
-// Table
+// Table (먹기 대상)
 // =========================
 function renderTable() {
 
@@ -40,24 +38,24 @@ function renderTable() {
 
     const img = document.createElement("img");
     img.src = "cards/" + card;
-    img.style.width = "70px";
 
-    img.onclick = () => {
-
-      if (!selected) return; // 🔥 핵심 차단
+    img.addEventListener("click", () => {
+      if (!selectedHand) return;
 
       socket.emit("takeCard", {
         roomId: state.roomId,
         tableCard: card
       });
-    };
+
+      selectedHand = null;
+    });
 
     el.appendChild(img);
   });
 }
 
 // =========================
-// Hand
+// My Hand (선택)
 // =========================
 function renderHand() {
 
@@ -70,16 +68,20 @@ function renderHand() {
 
     const img = document.createElement("img");
     img.src = "cards/" + card;
-    img.style.width = "70px";
 
-    img.onclick = () => {
-      selected = card;
+    img.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      selectedHand = card;
 
       socket.emit("selectHand", {
         roomId: state.roomId,
         card
       });
-    };
+    });
+
+    // 🔥 모바일 클릭 안정화
+    img.style.touchAction = "manipulation";
 
     el.appendChild(img);
   });
@@ -97,7 +99,7 @@ function renderHand() {
 }
 
 // =========================
-// 먹은 카드
+// Captured
 // =========================
 function renderCaptured() {
 
@@ -109,7 +111,6 @@ function renderCaptured() {
   list.forEach(card => {
     const img = document.createElement("img");
     img.src = "cards/" + card;
-    img.style.width = "40px";
     el.appendChild(img);
   });
 }
