@@ -27,6 +27,7 @@ function createDeck() {
   return deck.sort(() => Math.random() - 0.5);
 }
 
+// =========================
 function createSpecial() {
   return [
     "special1_draw.png",
@@ -36,21 +37,13 @@ function createSpecial() {
 }
 
 // =========================
-// 🧠 인원별 카드 수
-// =========================
-function getHandSize(playerCount) {
-  if (playerCount === 2) return 10;
-  if (playerCount === 3) return 7;
-  return 5; // 4인 기본
-}
-
+// 점수 엔진
 // =========================
 function calculateScore(cards) {
 
   let score = 0;
 
   const bright = cards.filter(c => c.includes("bright"));
-
   if (bright.length >= 5) score += 15;
   else if (bright.length === 4) score += 4;
   else if (bright.length === 3) score += 2;
@@ -92,9 +85,9 @@ function emitState(roomId) {
 
   io.to(roomId).emit("stateUpdate", {
     roomId,
-    players: room.players,
     table: room.table,
     hands: room.hands,
+    captured: room.captured,
     score
   });
 }
@@ -102,7 +95,6 @@ function emitState(roomId) {
 // =========================
 io.on("connection", (socket) => {
 
-  // =========================
   socket.on("joinRoom", ({ roomId }) => {
 
     roomId = Number(roomId);
@@ -113,7 +105,7 @@ io.on("connection", (socket) => {
 
       rooms[roomId] = {
         players: [],
-        table: [],
+        table: deck.splice(0, 6),
         deck,
         specialDeck: createSpecial(),
         hands: {},
@@ -130,10 +122,8 @@ io.on("connection", (socket) => {
       room.players.push(socket.id);
     }
 
-    // =========================
-    // 🧠 인원수 기반 패 분배
-    // =========================
-    const handSize = getHandSize(room.players.length);
+    const handSize = room.players.length === 2 ? 10 :
+                      room.players.length === 3 ? 7 : 5;
 
     if (!room.hands[socket.id]) {
       room.hands[socket.id] = room.deck.splice(0, handSize);
@@ -144,14 +134,6 @@ io.on("connection", (socket) => {
     }
 
     room.selectedHand[socket.id] = null;
-
-    // =========================
-    // 테이블 자동 세팅 (인원 기반)
-    // =========================
-    const tableSize = 6;
-    if (room.table.length === 0) {
-      room.table = room.deck.splice(0, tableSize);
-    }
 
     emitState(roomId);
   });
@@ -168,22 +150,24 @@ io.on("connection", (socket) => {
   });
 
   // =========================
-  // Table 클릭 → 먹기
+  // Table 클릭 (먹기)
   // =========================
   socket.on("takeCard", ({ roomId, tableCard }) => {
 
     const room = rooms[roomId];
     if (!room) return;
 
-    const handCard = room.selectedHand[socket.id];
-    if (!handCard) return; // 🔥 핵심: 선택 없으면 무시
+    const selected = room.selectedHand[socket.id];
+
+    // 🔥 선택 없으면 무조건 차단
+    if (!selected) return;
 
     const tableIndex = room.table.indexOf(tableCard);
     if (tableIndex === -1) return;
 
     const hand = room.hands[socket.id];
+    const handIndex = hand.indexOf(selected);
 
-    const handIndex = hand.indexOf(handCard);
     if (handIndex !== -1) {
       hand.splice(handIndex, 1);
     }
