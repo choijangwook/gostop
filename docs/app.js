@@ -3,7 +3,6 @@ const socket = io("https://gostop-server.onrender.com");
 let state = null;
 let myId = null;
 
-// =========================
 socket.on("connect", () => {
   myId = socket.id;
 });
@@ -31,23 +30,21 @@ function renderPlayers() {
   const el = document.getElementById("players");
   el.innerHTML = "";
 
-  if (!state?.players) return;
-
   state.players.forEach(p => {
     const li = document.createElement("li");
-    li.innerText = (p === myId) ? p + " (me)" : p;
+
+    const score = state.score?.[p] || 0;
+
+    li.innerText = (p === myId ? p + " (me)" : p) + " | score: " + score;
+
     el.appendChild(li);
   });
 }
 
 // =========================
-// 🔥 테이블 (클릭해서 먹기)
-// =========================
 function renderTable() {
   const el = document.getElementById("table");
   el.innerHTML = "";
-
-  if (!state?.table) return;
 
   state.table.forEach(card => {
     const img = document.createElement("img");
@@ -56,11 +53,10 @@ function renderTable() {
     img.style.width = "60px";
     img.style.margin = "5px";
 
-    // 🔥 먹기 이벤트
     img.onclick = () => {
       socket.emit("takeCard", {
         roomId: state.roomId,
-        card: card
+        card
       });
     };
 
@@ -69,13 +65,11 @@ function renderTable() {
 }
 
 // =========================
-// 내 손패
-// =========================
 function renderHand() {
   const el = document.getElementById("hand");
   el.innerHTML = "";
 
-  const hand = state?.hands?.[myId] || [];
+  const hand = state.hands?.[myId] || [];
 
   hand.forEach(card => {
     const img = document.createElement("img");
@@ -86,4 +80,15 @@ function renderHand() {
 
     el.appendChild(img);
   });
+
+  const btn = document.createElement("button");
+  btn.innerText = "특수카드 사용";
+
+  btn.onclick = () => {
+    socket.emit("useSpecial", {
+      roomId: state.roomId
+    });
+  };
+
+  el.appendChild(btn);
 }
