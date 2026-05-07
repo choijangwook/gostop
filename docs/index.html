@@ -1,54 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, user-scalable=no"
+/>
+
+<title>GoStop</title>
 
 <style>
 
 body {
   margin: 0;
   overflow: hidden;
+  background: #2f4f2f;
+  color: white;
   font-family: sans-serif;
-  background: #f3f3f3;
 }
 
-/* 🔥 전체 중앙 + 아래로 살짝 내림 */
 #wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
 
-  padding-top: 60px; /* ← 핵심 (room 안 잘림) */
+  padding-top: 40px;
+
   height: 100vh;
   box-sizing: border-box;
 }
 
 #lobby {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 #game {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   width: 100%;
   max-width: 500px;
+
+  display: flex;
+  flex-direction: column;
+
   align-items: center;
+
+  gap: 12px;
 }
 
-#table, #hand, #captured {
+#turn {
+  margin: 0;
+}
+
+#table,
+#hand,
+#captured {
   display: flex;
+
   flex-wrap: wrap;
+
   justify-content: center;
+
   gap: 6px;
+
+  min-height: 70px;
 }
 
 img {
   width: 60px;
+
   user-select: none;
   -webkit-user-drag: none;
+
   touch-action: manipulation;
 }
 
@@ -58,11 +80,22 @@ img {
 
 #captured img {
   width: 35px;
-  opacity: 0.8;
 }
 
 button {
+  padding: 10px 15px;
+  font-size: 16px;
+}
+
+input {
   padding: 10px;
+  width: 120px;
+  text-align: center;
+  font-size: 16px;
+}
+
+h3, h4 {
+  margin: 4px;
 }
 
 </style>
@@ -72,27 +105,43 @@ button {
 
 <div id="wrap">
 
-<div id="lobby">
-  <input id="roomInput" placeholder="3자리 방번호">
-  <button onclick="joinRoom()">참가</button>
-</div>
+  <!-- 로비 -->
+  <div id="lobby">
 
-<div id="game">
+    <input
+      id="roomInput"
+      maxlength="3"
+      placeholder="123"
+    >
 
-  <h4>Table</h4>
-  <div id="table"></div>
+    <button onclick="joinRoom()">
+      참가
+    </button>
 
-  <h4>My Hand</h4>
-  <div id="hand"></div>
+  </div>
 
-  <h4>Captured</h4>
-  <div id="captured"></div>
+  <!-- 게임 -->
+  <div id="game">
 
-</div>
+    <h3 id="turn">
+      대기중...
+    </h3>
+
+    <h4>Table</h4>
+    <div id="table"></div>
+
+    <h4>My Hand</h4>
+    <div id="hand"></div>
+
+    <h4>Captured</h4>
+    <div id="captured"></div>
+
+  </div>
 
 </div>
 
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+
 <script src="app.js"></script>
 
 </body>
