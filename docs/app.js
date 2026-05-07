@@ -7,7 +7,10 @@ socket.on("connect", () => {
   myId = socket.id;
 });
 
-/* ===================== */
+/* =========================
+   상태 업데이트
+========================= */
+
 socket.on("stateUpdate", (s) => {
 
   state = s;
@@ -15,25 +18,47 @@ socket.on("stateUpdate", (s) => {
   render();
 });
 
-/* ===================== */
+/* =========================
+   렌더
+========================= */
+
 function render() {
 
   if (!state) return;
 
-  document.getElementById("status").innerText =
-    state.turn === myId ? "내 턴" : "상대 턴";
+  /* =======================
+     방번호 표시 (핵심 추가)
+  ======================= */
 
-  /* table */
+  const status = document.getElementById("status");
+
+  if (status) {
+
+    status.innerHTML =
+      "방번호 : " + state.roomId +
+      " | " +
+      (state.turn === myId ? "🟢 내 턴" : "⏳ 상대 턴");
+  }
+
+  /* =======================
+     바닥패
+  ======================= */
+
   const table = document.getElementById("table");
   table.innerHTML = "";
 
   (state.table || []).forEach(c => {
+
     const img = document.createElement("img");
     img.src = "cards/" + c;
+
     table.appendChild(img);
   });
 
-  /* hand */
+  /* =======================
+     내 패
+  ======================= */
+
   const hand = document.getElementById("hand");
   hand.innerHTML = "";
 
@@ -57,7 +82,10 @@ function render() {
     hand.appendChild(img);
   });
 
-  /* captured */
+  /* =======================
+     먹은패
+  ======================= */
+
   const cap = document.getElementById("captured");
   cap.innerHTML = "";
 
