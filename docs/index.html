@@ -1,20 +1,82 @@
-<body style="margin:0;padding:10px;">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<style>
+
+body {
+  margin: 0;
+  padding: 10px;
+  overflow: hidden; /* 🔥 스크롤 완전 차단 */
+  touch-action: none;
+  font-family: sans-serif;
+}
+
+#game {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  gap: 10px;
+}
+
+#table, #hand, #captured {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+img {
+  width: 60px;
+  user-select: none;
+  -webkit-user-drag: none;
+  touch-action: manipulation;
+}
+
+#hand img {
+  width: 65px;
+}
+
+#captured img {
+  width: 35px;
+  opacity: 0.8;
+}
+
+#lobby {
+  text-align: center;
+}
+
+button {
+  padding: 10px;
+}
+
+</style>
+</head>
+
+<body>
 
 <div id="lobby">
   <input id="roomInput" placeholder="3자리 방번호">
   <button onclick="joinRoom()">참가</button>
 </div>
 
-<h3>Table</h3>
-<div id="table"></div>
+<div id="game">
 
-<h3>My Hand</h3>
-<div id="hand"></div>
+  <h4>Table</h4>
+  <div id="table"></div>
 
-<h3>Captured</h3>
-<div id="captured"></div>
+  <h4>My Hand</h4>
+  <div id="hand"></div>
+
+  <h4>Captured</h4>
+  <div id="captured"></div>
+
+</div>
 
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
 <script src="app.js"></script>
 
 </body>
+</html>
