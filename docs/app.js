@@ -12,17 +12,6 @@ let myId = null;
 let playerMode = 2;
 
 // =========================
-// 모드 선택
-// =========================
-
-function setMode(mode) {
-
-  playerMode = mode;
-
-  alert(mode + "인용 선택");
-}
-
-// =========================
 // 연결
 // =========================
 
@@ -34,23 +23,49 @@ socket.on("connect", () => {
 });
 
 // =========================
-// 참가
+// 방 만들기
 // =========================
 
-function joinRoom() {
+function createRoom(mode) {
+
+  playerMode = mode;
+
+  const roomId =
+    Math.floor(
+      100 + Math.random() * 900
+    );
+
+  document.getElementById("roomInput")
+    .value = roomId;
+
+  joinRoom(true);
+}
+
+// =========================
+// 방 참가
+// =========================
+
+function joinRoom(isHost = false) {
 
   const roomId =
     Number(
       document.getElementById("roomInput").value
     );
 
-  if (!roomId) return;
+  if (!roomId) {
+
+    alert("방번호 입력");
+
+    return;
+  }
 
   socket.emit("joinRoom", {
 
     roomId,
 
-    mode: playerMode
+    mode: playerMode,
+
+    host: isHost
   });
 
   document.getElementById("lobby")
@@ -59,7 +74,7 @@ function joinRoom() {
   document.getElementById("game")
     .style.display = "block";
 
-  applyModeLayout();
+  applyModeUI();
 }
 
 // =========================
@@ -68,8 +83,12 @@ function joinRoom() {
 
 function playWithBot() {
 
+  playerMode = 2;
+
   const roomId =
-    Math.floor(100 + Math.random() * 900);
+    Math.floor(
+      100 + Math.random() * 900
+    );
 
   document.getElementById("roomInput")
     .value = roomId;
@@ -89,54 +108,38 @@ function playWithBot() {
   document.getElementById("game")
     .style.display = "block";
 
-  playerMode = 2;
-
-  applyModeLayout();
+  applyModeUI();
 }
 
 // =========================
-// 2인/3인 레이아웃
+// UI 적용
 // =========================
 
-function applyModeLayout() {
-
-  const enemy2 =
-    document.getElementById(
-      "enemy2Section"
-    );
-
-  const enemy1Title =
-    document.getElementById(
-      "enemy1Title"
-    );
-
-  const game =
-    document.getElementById("game");
+function applyModeUI() {
 
   // 2인용
 
   if (playerMode === 2) {
 
-    if (enemy2)
-      enemy2.style.display = "none";
+    document.body.classList
+      .add("twoPlayer");
 
-    if (enemy1Title)
-      enemy1Title.innerText =
+    document
+      .getElementById("enemy1Title")
+      .innerText =
         "상대방이 먹은패";
-
-    if (game)
-      game.style.height = "100vh";
   }
 
   // 3인용
 
   else {
 
-    if (enemy2)
-      enemy2.style.display = "block";
+    document.body.classList
+      .remove("twoPlayer");
 
-    if (enemy1Title)
-      enemy1Title.innerText =
+    document
+      .getElementById("enemy1Title")
+      .innerText =
         "1번 상대 먹은패";
   }
 }
@@ -148,6 +151,20 @@ function applyModeLayout() {
 socket.on("stateUpdate", s => {
 
   state = s;
+
+  // 서버 mode 기준으로 UI 자동 변경
+
+  if (state.players.length >= 3) {
+
+    playerMode = 3;
+  }
+
+  else {
+
+    playerMode = 2;
+  }
+
+  applyModeUI();
 
   renderTable();
 
@@ -207,7 +224,7 @@ function renderTable() {
 }
 
 // =========================
-// 내 패
+// 내패
 // =========================
 
 function renderHand() {
@@ -345,7 +362,7 @@ function getCardType(card) {
 }
 
 // =========================
-// 어느 줄인지
+// 먹은패 줄
 // =========================
 
 function getCaptureRow(
@@ -357,7 +374,7 @@ function getCaptureRow(
   const type =
     getCardType(card);
 
-  // 내 패
+  // 내 먹은패
 
   if (playerId === myId) {
 
@@ -366,7 +383,7 @@ function getCaptureRow(
     );
   }
 
-  // 적1
+  // 상대1
 
   if (playerId === enemies[0]) {
 
@@ -375,7 +392,7 @@ function getCaptureRow(
     );
   }
 
-  // 적2
+  // 상대2
 
   if (playerId === enemies[1]) {
 
