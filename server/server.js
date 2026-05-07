@@ -89,7 +89,7 @@ function sendState(roomId) {
 
   if (!room) return;
 
-  // host 상태
+  // host
   io.to(room.host).emit("updateState", {
 
     myHand: room.hostHand,
@@ -103,7 +103,7 @@ function sendState(roomId) {
     turn: room.turn
   });
 
-  // guest 상태
+  // guest
   if (room.guest) {
 
     io.to(room.guest).emit("updateState", {
@@ -201,7 +201,6 @@ io.on("connection", (socket) => {
 
     console.log("게임 시작:", roomId);
 
-    // 모바일 안정화
     setTimeout(() => {
 
       io.to(roomId).emit("startGame");
@@ -221,8 +220,14 @@ io.on("connection", (socket) => {
 
     if (!room) return;
 
-    // 턴 체크
+    // 🔥 현재 턴 강제 체크
     if (room.turn !== socket.id) {
+
+      console.log(
+        "턴 불일치",
+        room.turn,
+        socket.id
+      );
 
       socket.emit(
         "errorMessage",
@@ -245,15 +250,18 @@ io.on("connection", (socket) => {
         ? room.hostCapture
         : room.guestCapture;
 
-    // 카드 찾기
+    // 🔥 카드 찾기
     const cardIndex =
       hand.findIndex(
-        c => c.id === cardId
+        c => Number(c.id) === Number(cardId)
       );
 
-    if (cardIndex < 0) {
+    if (cardIndex === -1) {
 
-      console.log("카드 못찾음");
+      console.log(
+        "카드 못찾음:",
+        cardId
+      );
 
       return;
     }
@@ -262,11 +270,17 @@ io.on("connection", (socket) => {
 
     console.log("낸 카드:", card);
 
-    // 같은 month 찾기
+
+    // =========================
+    // 같은 month 카드 찾기
+    // =========================
     const matchedCards =
       room.table.filter(
-        c => c.month === card.month
+        c =>
+          Number(c.month) ===
+          Number(card.month)
       );
+
 
     // =========================
     // 먹기
@@ -286,27 +300,43 @@ io.on("connection", (socket) => {
       // 바닥 제거
       room.table =
         room.table.filter(
-          c => c.month !== card.month
+          c =>
+            Number(c.month) !==
+            Number(card.month)
         );
 
     } else {
 
       // 바닥에 놓기
-      console.log("바닥에 내려놓음");
+      console.log("바닥에 놓음");
 
       room.table.push(card);
     }
 
+
+    // =========================
     // 손패 제거
+    // =========================
     hand.splice(cardIndex, 1);
 
+
+    // =========================
     // 턴 변경
+    // =========================
     room.turn =
       isHost
         ? room.guest
         : room.host;
 
+    console.log(
+      "턴 변경:",
+      room.turn
+    );
+
+
+    // =========================
     // 상태 전송
+    // =========================
     sendState(roomId);
   });
 
