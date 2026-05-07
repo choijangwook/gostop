@@ -45,7 +45,7 @@ function joinRoom() {
 }
 
 // =========================
-// 컴퓨터 대전
+// 컴퓨터 대결
 // =========================
 
 function playWithBot() {
@@ -56,11 +56,20 @@ function playWithBot() {
   document.getElementById("roomInput")
     .value = roomId;
 
-  joinRoom();
+  socket.emit("joinRoom", {
+    roomId,
+    bot: true
+  });
+
+  document.getElementById("lobby")
+    .style.display = "none";
+
+  document.getElementById("game")
+    .style.display = "block";
 }
 
 // =========================
-// 상태 수신
+// 상태 업데이트
 // =========================
 
 socket.on("stateUpdate", (s) => {
@@ -75,7 +84,7 @@ socket.on("stateUpdate", (s) => {
 
   renderCaptured();
 
-  // 턴 표시
+  // 턴
   document.getElementById("turn")
     .innerText =
       state.turn === myId
@@ -118,14 +127,15 @@ function renderTable() {
     const img =
       document.createElement("img");
 
-    img.src = "cards/" + card;
+    img.src =
+      "cards/" + card;
 
     table.appendChild(img);
   });
 }
 
 // =========================
-// 내 패
+// 내패
 // =========================
 
 function renderHand() {
@@ -143,7 +153,8 @@ function renderHand() {
     const img =
       document.createElement("img");
 
-    img.src = "cards/" + card;
+    img.src =
+      "cards/" + card;
 
     img.onclick = () => {
 
@@ -161,12 +172,12 @@ function renderHand() {
 }
 
 // =========================
-// 먹은패
+// 먹은패 렌더
 // =========================
 
 function renderCaptured() {
 
-  clearCapturedRows();
+  clearCaptured();
 
   if (!state.captured)
     return;
@@ -184,6 +195,9 @@ function renderCaptured() {
             playerId,
             card
           );
+
+        if (!row)
+          return;
 
         const img =
           document.createElement("img");
@@ -203,7 +217,7 @@ function renderCaptured() {
 // 줄 초기화
 // =========================
 
-function clearCapturedRows() {
+function clearCaptured() {
 
   [
     "enemyBright",
@@ -227,7 +241,7 @@ function clearCapturedRows() {
 }
 
 // =========================
-// 카드 종류 판별
+// 카드 종류
 // =========================
 
 function getCardType(card) {
@@ -245,7 +259,7 @@ function getCardType(card) {
 }
 
 // =========================
-// 어느 줄에 넣을지
+// 렌더 위치
 // =========================
 
 function getCaptureRow(playerId, card) {
