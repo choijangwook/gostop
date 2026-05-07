@@ -14,7 +14,7 @@ const io = socketIo(server, {
 app.use(express.static("docs"));
 
 // =========================
-// 정확한 화투 48장
+// 카드 덱
 // =========================
 function createDeck() {
 
@@ -80,7 +80,6 @@ function createDeck() {
     "12_ribbon.png",
     "12_junk1.png",
 
-    // 특수카드 3장
     "special1_draw.png",
     "special2_draw.png",
     "special3_draw.png"
@@ -102,8 +101,23 @@ function emitState(roomId) {
     roomId,
     table: room.table,
     hands: room.hands,
-    captured: room.captured
+    captured: room.captured,
+    turn: room.turn
   });
+}
+
+// =========================
+function nextTurn(room) {
+
+  if (room.players.length === 0) return;
+
+  room.turnIndex++;
+
+  if (room.turnIndex >= room.players.length) {
+    room.turnIndex = 0;
+  }
+
+  room.turn = room.players[room.turnIndex];
 }
 
 // =========================
@@ -127,7 +141,9 @@ io.on("connection", (socket) => {
         table: deck.splice(0, 6),
         deck,
         hands: {},
-        captured: {}
+        captured: {},
+        turn: null,
+        turnIndex: 0
       };
     }
 
@@ -135,12 +151,15 @@ io.on("connection", (socket) => {
 
     socket.join(roomId);
 
-    // 중복 방지
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
     }
 
-    // 처음 참가 시만 패 지급
+    // 첫 턴 지정
+    if (!room.turn) {
+      room.turn = socket.id;
+    }
+
     if (!room.hands[socket.id]) {
       room.hands[socket.id] = room.deck.splice(0, 5);
     }
@@ -160,10 +179,12 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
+    // 🔥 내 턴 아닐 경우 차단
+    if (room.turn !== socket.id) return;
+
     const hand = room.hands[socket.id];
     if (!hand) return;
 
-    // 손패 제거
     const handIndex = hand.indexOf(card);
 
     if (handIndex === -1) return;
@@ -171,30 +192,30 @@ io.on("connection", (socket) => {
     hand.splice(handIndex, 1);
 
     // =========================
-    // 특수카드 처리
+    // 특수 카드
     // =========================
     if (card.startsWith("special")) {
 
       room.captured[socket.id].push(card);
 
-      const drawCard = room.deck.shift();
+      const draw = room.deck.shift();
 
-      if (drawCard) {
-        hand.push(drawCard);
+      if (draw) {
+        hand.push(draw);
       }
 
+      nextTurn(room);
+
       emitState(roomId);
+
       return;
     }
 
     // =========================
-    // 월(month) 추출
+    // 월 찾기
     // =========================
     const month = card.split("_")[0];
 
-    // =========================
-    // 같은 월 찾기
-    // =========================
     const matchIndex = room.table.findIndex(
       c => c.startsWith(month + "_")
     );
@@ -204,19 +225,20 @@ io.on("connection", (socket) => {
     // =========================
     if (matchIndex !== -1) {
 
-      const matchedCard =
+      const matched =
         room.table.splice(matchIndex, 1)[0];
 
       room.captured[socket.id].push(card);
-      room.captured[socket.id].push(matchedCard);
+      room.captured[socket.id].push(matched);
 
     } else {
 
-      // =========================
-      // 못 먹으면 테이블로
-      // =========================
+      // 못 먹으면 바닥으로
       room.table.push(card);
     }
+
+    // 🔥 턴 변경
+    nextTurn(room);
 
     emitState(roomId);
   });
@@ -236,7 +258,15 @@ io.on("connection", (socket) => {
       delete room.hands[socket.id];
       delete room.captured[socket.id];
 
-      // 방 비면 삭제
+      // 턴 보정
+      if (room.turn === socket.id) {
+
+        room.turnIndex = 0;
+
+        room.turn =
+          room.players[0] || null;
+      }
+
       if (room.players.length === 0) {
         delete rooms[roomId];
       }
