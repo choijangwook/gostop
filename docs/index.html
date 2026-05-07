@@ -27,10 +27,6 @@ body {
   font-family: sans-serif;
 }
 
-/* ========================= */
-/* 전체 */
-/* ========================= */
-
 #wrap {
 
   width: 100vw;
@@ -60,7 +56,7 @@ body {
 
   height: 100%;
 
-  gap: 14px;
+  gap: 10px;
 }
 
 #roomInput {
@@ -80,15 +76,22 @@ body {
 
 button {
 
-  padding: 12px 22px;
+  padding: 10px 18px;
 
-  font-size: 18px;
+  font-size: 17px;
 
   border: none;
 
   border-radius: 8px;
 
   cursor: pointer;
+}
+
+.modeButtons {
+
+  display: flex;
+
+  gap: 8px;
 }
 
 /* ========================= */
@@ -108,10 +111,6 @@ button {
   padding: 2px;
 }
 
-/* ========================= */
-/* 상단 정보 */
-/* ========================= */
-
 #topInfo {
 
   display: flex;
@@ -121,43 +120,41 @@ button {
   align-items: center;
 
   margin-bottom: 3px;
-
-  padding: 0 2px;
 }
 
 #topInfo h3 {
 
   margin: 0;
 
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* ========================= */
-/* 영역 */
+/* 공통 섹션 */
 /* ========================= */
 
 .section {
-
-  margin-bottom: 8px;
 
   border: 1px solid rgba(255,255,255,0.25);
 
   border-radius: 6px;
 
   padding: 2px;
+
+  margin-bottom: 6px;
 }
 
 .sectionTitle {
 
   margin: 0 0 1px 0;
 
-  font-size: 13px;
+  font-size: 12px;
 
   font-weight: bold;
 }
 
 /* ========================= */
-/* 줄 */
+/* 카드 줄 */
 /* ========================= */
 
 .cardRow {
@@ -166,13 +163,11 @@ button {
 
   flex-wrap: nowrap;
 
-  align-items: center;
-
   gap: 1px;
 
-  min-height: 34px;
-
   overflow: hidden;
+
+  min-height: 32px;
 
   margin-bottom: 1px;
 }
@@ -183,7 +178,7 @@ button {
 
 img {
 
-  width: 52px;
+  width: 50px;
 
   user-select: none;
 
@@ -192,11 +187,9 @@ img {
   touch-action: manipulation;
 }
 
-/* 먹은패 카드 */
-
 .captureCard {
 
-  width: 28px;
+  width: 26px;
 }
 
 /* ========================= */
@@ -205,9 +198,14 @@ img {
 
 @media (max-width: 700px) {
 
-  #topInfo h3 {
+  img {
 
-    font-size: 11px;
+    width: 38px;
+  }
+
+  .captureCard {
+
+    width: 20px;
   }
 
   .sectionTitle {
@@ -215,19 +213,9 @@ img {
     font-size: 11px;
   }
 
-  img {
+  #topInfo h3 {
 
-    width: 39px;
-  }
-
-  .captureCard {
-
-    width: 21px;
-  }
-
-  .cardRow {
-
-    min-height: 24px;
+    font-size: 10px;
   }
 }
 
@@ -254,6 +242,18 @@ img {
     <button onclick="joinRoom()">
       참가
     </button>
+
+    <div class="modeButtons">
+
+      <button onclick="setMode(2)">
+        2인용
+      </button>
+
+      <button onclick="setMode(3)">
+        3인용
+      </button>
+
+    </div>
 
     <button onclick="playWithBot()">
       컴퓨터 대결
@@ -283,22 +283,36 @@ img {
     </div>
 
     <!-- ========================= -->
-    <!-- 상대 먹은패 -->
+    <!-- 1번 상대 먹은패 -->
     <!-- ========================= -->
 
     <div class="section">
 
       <div class="sectionTitle">
-        상대 먹은패
+        1번 상대 먹은패
       </div>
 
-      <div id="enemyBright" class="cardRow"></div>
+      <div id="enemy1Bright" class="cardRow"></div>
+      <div id="enemy1Animal" class="cardRow"></div>
+      <div id="enemy1Ribbon" class="cardRow"></div>
+      <div id="enemy1Junk" class="cardRow"></div>
 
-      <div id="enemyAnimal" class="cardRow"></div>
+    </div>
 
-      <div id="enemyRibbon" class="cardRow"></div>
+    <!-- ========================= -->
+    <!-- 2번 상대 먹은패 -->
+    <!-- ========================= -->
 
-      <div id="enemyJunk" class="cardRow"></div>
+    <div class="section">
+
+      <div class="sectionTitle">
+        2번 상대 먹은패
+      </div>
+
+      <div id="enemy2Bright" class="cardRow"></div>
+      <div id="enemy2Animal" class="cardRow"></div>
+      <div id="enemy2Ribbon" class="cardRow"></div>
+      <div id="enemy2Junk" class="cardRow"></div>
 
     </div>
 
@@ -337,15 +351,12 @@ img {
     <div class="section">
 
       <div class="sectionTitle">
-        내가 먹은패
+        내 먹은패
       </div>
 
       <div id="myBright" class="cardRow"></div>
-
       <div id="myAnimal" class="cardRow"></div>
-
       <div id="myRibbon" class="cardRow"></div>
-
       <div id="myJunk" class="cardRow"></div>
 
     </div>
@@ -353,6 +364,19 @@ img {
   </div>
 
 </div>
+
+<script>
+
+let playerMode = 2;
+
+function setMode(mode) {
+
+  playerMode = mode;
+
+  alert(mode + "인용 선택");
+}
+
+</script>
 
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
 
