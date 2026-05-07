@@ -1,66 +1,320 @@
 <!DOCTYPE html>
-button {
-  padding: 8px 14px;
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, user-scalable=no"
+>
+
+<title>고스톱</title>
+
+<style>
+
+body {
+
+  margin: 0;
+
+  overflow: hidden;
+
+  background: #2f4f2f;
+
+  color: white;
+
+  font-family: sans-serif;
 }
 
-input {
-  padding: 8px;
-  width: 120px;
+/* ========================= */
+/* 전체 */
+/* ========================= */
+
+#wrap {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: flex-start;
+
+  height: 100vh;
+
+  box-sizing: border-box;
+
+  padding-top: 90px;
+}
+
+/* ========================= */
+/* 입장 화면 */
+/* ========================= */
+
+#lobby {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 14px;
+}
+
+#roomInput {
+
+  width: 170px;
+
+  padding: 12px;
+
+  font-size: 20px;
+
   text-align: center;
+
+  border-radius: 8px;
+
+  border: none;
 }
 
-h3,h4,h5,p {
-  margin: 2px;
+button {
+
+  padding: 12px 20px;
+
+  font-size: 18px;
+
+  border-radius: 8px;
+
+  border: none;
+
+  cursor: pointer;
 }
+
+/* ========================= */
+/* 게임 화면 */
+/* ========================= */
+
+#game {
+
+  display: none;
+
+  width: 100%;
+
+  max-width: 1100px;
+
+  padding: 8px;
+
+  box-sizing: border-box;
+}
+
+#topInfo {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: 10px;
+}
+
+#playArea {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 8px;
+}
+
+#tableArea,
+#handArea {
+
+  width: 49%;
+}
+
+#table,
+#hand {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  justify-content: center;
+
+  gap: 4px;
+
+  min-height: 90px;
+}
+
+#capturedSection {
+
+  margin-top: 10px;
+}
+
+.playerCaptured {
+
+  border: 1px solid rgba(255,255,255,0.3);
+
+  border-radius: 8px;
+
+  padding: 4px;
+
+  margin-bottom: 8px;
+}
+
+.capturedRow {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 3px;
+
+  margin-top: 4px;
+}
+
+img {
+
+  width: 58px;
+
+  user-select: none;
+
+  -webkit-user-drag: none;
+
+  touch-action: manipulation;
+}
+
+.capturedRow img {
+
+  width: 34px;
+}
+
+h3,
+h4,
+h5,
+p {
+
+  margin: 4px;
+}
+
+/* ========================= */
+/* 모바일 */
+/* ========================= */
 
 @media (max-width: 700px) {
 
+  #wrap {
+
+    padding-top: 120px;
+  }
+
   img {
+
     width: 42px;
   }
 
+  .capturedRow img {
+
+    width: 28px;
+  }
+
   #playArea {
+
     gap: 4px;
   }
+
+  #roomInput {
+
+    width: 140px;
+  }
 }
+
 </style>
+
 </head>
 
 <body>
 
 <div id="wrap">
 
+  <!-- ========================= -->
+  <!-- 입장 화면 -->
+  <!-- ========================= -->
+
   <div id="lobby">
-    <input id="roomInput" maxlength="3" placeholder="123">
-    <button onclick="joinRoom()">참가</button>
-    <button onclick="playWithBot()">컴퓨터 대결</button>
+
+    <input
+      id="roomInput"
+      maxlength="3"
+      placeholder="방번호 123"
+    >
+
+    <button onclick="joinRoom()">
+      참가
+    </button>
+
+    <button onclick="playWithBot()">
+      컴퓨터 대결
+    </button>
+
   </div>
+
+  <!-- ========================= -->
+  <!-- 게임 화면 -->
+  <!-- ========================= -->
 
   <div id="game">
 
     <div id="topInfo">
-      <h3 id="turn">대기중...</h3>
-      <h3 id="deck">Deck : 0</h3>
+
+      <h3 id="turn">
+        대기중...
+      </h3>
+
+      <h3 id="deck">
+        남은패 : 0
+      </h3>
+
       <h3 id="winner"></h3>
+
     </div>
+
+    <!-- ========================= -->
+    <!-- 바닥패 + 내 패 -->
+    <!-- ========================= -->
 
     <div id="playArea">
 
       <div id="tableArea">
-        <h4>Table</h4>
+
+        <h4>바닥패</h4>
+
         <div id="table"></div>
+
       </div>
 
       <div id="handArea">
-        <h4>My Hand</h4>
+
+        <h4>내 패</h4>
+
         <div id="hand"></div>
+
       </div>
 
     </div>
 
+    <!-- ========================= -->
+    <!-- 먹은 패 -->
+    <!-- ========================= -->
+
     <div id="capturedSection">
-      <h4>Captured</h4>
+
+      <h4>먹은 패</h4>
+
       <div id="captured"></div>
+
     </div>
 
   </div>
@@ -68,7 +322,9 @@ h3,h4,h5,p {
 </div>
 
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+
 <script src="app.js"></script>
 
 </body>
+
 </html>
