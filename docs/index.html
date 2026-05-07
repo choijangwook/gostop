@@ -8,17 +8,34 @@
 
 body {
   margin: 0;
-  padding: 10px;
-  overflow: hidden; /* 🔥 스크롤 완전 차단 */
-  touch-action: none;
+  overflow: hidden;
   font-family: sans-serif;
+  background: #f3f3f3;
+}
+
+/* 🔥 전체 중앙 + 아래로 살짝 내림 */
+#wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+
+  padding-top: 60px; /* ← 핵심 (room 안 잘림) */
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+#lobby {
+  margin-bottom: 20px;
 }
 
 #game {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  gap: 10px;
+  gap: 12px;
+  width: 100%;
+  max-width: 500px;
+  align-items: center;
 }
 
 #table, #hand, #captured {
@@ -44,10 +61,6 @@ img {
   opacity: 0.8;
 }
 
-#lobby {
-  text-align: center;
-}
-
 button {
   padding: 10px;
 }
@@ -56,6 +69,8 @@ button {
 </head>
 
 <body>
+
+<div id="wrap">
 
 <div id="lobby">
   <input id="roomInput" placeholder="3자리 방번호">
@@ -72,6 +87,8 @@ button {
 
   <h4>Captured</h4>
   <div id="captured"></div>
+
+</div>
 
 </div>
 
