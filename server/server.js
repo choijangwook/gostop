@@ -89,7 +89,7 @@ function sendState(roomId) {
 
   if (!room) return;
 
-  // host
+  // host 상태
   io.to(room.host).emit("updateState", {
 
     myHand: room.hostHand,
@@ -98,10 +98,12 @@ function sendState(roomId) {
 
     capture: room.hostCapture,
 
+    opponentCapture: room.guestCapture,
+
     turn: room.turn
   });
 
-  // guest
+  // guest 상태
   if (room.guest) {
 
     io.to(room.guest).emit("updateState", {
@@ -111,6 +113,8 @@ function sendState(roomId) {
       table: room.table,
 
       capture: room.guestCapture,
+
+      opponentCapture: room.hostCapture,
 
       turn: room.turn
     });
@@ -241,7 +245,7 @@ io.on("connection", (socket) => {
         ? room.hostCapture
         : room.guestCapture;
 
-    // 🔥 카드 찾기
+    // 카드 찾기
     const cardIndex =
       hand.findIndex(
         c => c.id === cardId
@@ -258,9 +262,7 @@ io.on("connection", (socket) => {
 
     console.log("낸 카드:", card);
 
-    // =========================
-    // 같은 month 카드 모두 찾기
-    // =========================
+    // 같은 month 찾기
     const matchedCards =
       room.table.filter(
         c => c.month === card.month
@@ -273,15 +275,15 @@ io.on("connection", (socket) => {
 
       console.log("먹기 성공");
 
-      // 낸 카드 먹은패로
+      // 낸 카드 먹기
       capture.push(card);
 
-      // 같은 month 전부 먹기
+      // 바닥 카드 먹기
       matchedCards.forEach(c => {
         capture.push(c);
       });
 
-      // 바닥에서 제거
+      // 바닥 제거
       room.table =
         room.table.filter(
           c => c.month !== card.month
@@ -289,30 +291,22 @@ io.on("connection", (socket) => {
 
     } else {
 
-      // =========================
-      // 못 먹으면 바닥에 놓기
-      // =========================
+      // 바닥에 놓기
       console.log("바닥에 내려놓음");
 
       room.table.push(card);
     }
 
-    // =========================
     // 손패 제거
-    // =========================
     hand.splice(cardIndex, 1);
 
-    // =========================
     // 턴 변경
-    // =========================
     room.turn =
       isHost
         ? room.guest
         : room.host;
 
-    // =========================
     // 상태 전송
-    // =========================
     sendState(roomId);
   });
 
