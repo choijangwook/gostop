@@ -1,27 +1,9 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>GoStop</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="data:,">
-</head>
+<body style="margin:0;padding:10px;">
 
-<body>
-
-<h2>GoStop Room</h2>
-
-<input id="roomInput" placeholder="3자리 방 번호">
-<button onclick="joinRoom()">참가</button>
-
-<p>Room: <span id="roomId"></span></p>
-
-<hr>
-
-<h3>Players</h3>
-<ul id="players"></ul>
-
-<hr>
+<div id="lobby">
+  <input id="roomInput" placeholder="3자리 방번호">
+  <button onclick="joinRoom()">참가</button>
+</div>
 
 <h3>Table</h3>
 <div id="table"></div>
@@ -29,8 +11,10 @@
 <h3>My Hand</h3>
 <div id="hand"></div>
 
+<h3>Captured</h3>
+<div id="captured"></div>
+
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
 <script src="app.js"></script>
 
 </body>
-</html>
