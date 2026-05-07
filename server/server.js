@@ -13,89 +13,166 @@ const io = new Server(server, {
 
 const rooms = {};
 
-io.on("connection", (socket) => {
+function createCards() {
 
-  console.log("접속:", socket.id);
+  const cards = [];
+
+  for (let month = 1; month <= 12; month++) {
+
+    cards.push({
+      month,
+      file: `${month}_junk1.png`
+    });
+
+    cards.push({
+      month,
+      file: `${month}_junk2.png`
+    });
+
+    cards.push({
+      month,
+      file: `${month}_animal.png`
+    });
+
+    cards.push({
+      month,
+      file: `${month}_ribbon.png`
+    });
+  }
+
+  return cards.sort(() => Math.random() - 0.5);
+}
+
+io.on("connection", (socket) => {
 
   socket.on("createRoom", () => {
 
-    const roomId = Math.random()
+    const roomId =
+      Math.random()
       .toString(36)
       .substring(2, 8);
 
+    const deck = createCards();
+
     rooms[roomId] = {
+
       host: socket.id,
       guest: null,
-      turn: socket.id
+
+      turn: socket.id,
+
+      hostHand: deck.splice(0, 10),
+      guestHand: deck.splice(0, 10),
+
+      table: deck.splice(0, 8),
+
+      hostCapture: [],
+      guestCapture: []
     };
 
     socket.join(roomId);
 
     socket.emit("roomCreated", roomId);
-
-    console.log("방 생성:", roomId);
   });
 
   socket.on("joinRoom", (roomId) => {
 
     const room = rooms[roomId];
 
-    if (!room) {
-      socket.emit(
-        "errorMessage",
-        "방이 존재하지 않습니다."
-      );
-      return;
-    }
-
-    if (room.guest) {
-      socket.emit(
-        "errorMessage",
-        "방이 가득 찼습니다."
-      );
-      return;
-    }
+    if (!room) return;
 
     room.guest = socket.id;
 
     socket.join(roomId);
 
-    io.to(roomId).emit("startGame", {
-      turn: room.turn
-    });
+    io.to(roomId).emit("startGame");
 
-    console.log("게임 시작");
+    sendState(roomId);
   });
 
-  socket.on("playCard", ({ roomId }) => {
+  socket.on("playCard", ({ roomId, index }) => {
 
     const room = rooms[roomId];
 
     if (!room) return;
 
-    // 자기 턴만 가능
-    if (room.turn !== socket.id) {
-      socket.emit(
-        "errorMessage",
-        "상대 턴입니다."
+    if (room.turn !== socket.id) return;
+
+    const isHost =
+      socket.id === room.host;
+
+    const hand =
+      isHost
+        ? room.hostHand
+        : room.guestHand;
+
+    const capture =
+      isHost
+        ? room.hostCapture
+        : room.guestCapture;
+
+    const card = hand[index];
+
+    if (!card) return;
+
+    // 같은 month 찾기
+    const sameIndex =
+      room.table.findIndex(
+        c => c.month === card.month
       );
-      return;
+
+    if (sameIndex >= 0) {
+
+      // 먹기
+      capture.push(card);
+
+      capture.push(
+        room.table[sameIndex]
+      );
+
+      room.table.splice(sameIndex, 1);
+
+    } else {
+
+      // 바닥에 놓기
+      room.table.push(card);
     }
 
-    // 턴 변경
+    hand.splice(index, 1);
+
     room.turn =
-      socket.id === room.host
+      isHost
         ? room.guest
         : room.host;
 
-    io.to(roomId).emit("turnChanged", {
-      turn: room.turn
-    });
+    sendState(roomId);
   });
 
 });
 
-const PORT = process.env.PORT || 3000;
+function sendState(roomId) {
+
+  const room = rooms[roomId];
+
+  io.to(room.host).emit("updateState", {
+
+    myHand: room.hostHand,
+    table: room.table,
+    capture: room.hostCapture,
+    turn: room.turn
+  });
+
+  io.to(room.guest).emit("updateState", {
+
+    myHand: room.guestHand,
+    table: room.table,
+    capture: room.guestCapture,
+    turn: room.turn
+  });
+}
+
+const PORT =
+  process.env.PORT || 3000;
 
 server.listen(PORT, () => {
   console.log("서버 실행중");
