@@ -8,10 +8,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-app.use(express.static("public"));
+app.use(express.static("docs"));
 
 io.on("connection", (socket) => {
-  console.log("connected:", socket.id);
 
   socket.on("createRoom", ({ roomId }) => {
     roomManager.createRoom(roomId);
@@ -28,6 +27,7 @@ io.on("connection", (socket) => {
   socket.on("takeCard", ({ roomId, cardId }) => {
     roomManager.takeCard(roomId, socket.id, cardId);
 
+    // 🔥 무조건 전체 덮어쓰기
     io.to(roomId).emit("stateUpdate", roomManager.getState(roomId));
   });
 
@@ -36,12 +36,8 @@ io.on("connection", (socket) => {
 
     io.to(roomId).emit("stateUpdate", roomManager.getState(roomId));
   });
-
-  socket.on("disconnect", () => {
-    console.log("disconnect:", socket.id);
-  });
 });
 
 server.listen(3000, () => {
-  console.log("server running on 3000");
+  console.log("server running");
 });
