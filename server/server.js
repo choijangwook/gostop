@@ -13,8 +13,6 @@ const io = new Server(server, {
 
 const rooms = {};
 
-console.log("서버 실행중");
-
 io.on("connection", (socket) => {
 
   console.log("접속:", socket.id);
@@ -27,29 +25,34 @@ io.on("connection", (socket) => {
 
     rooms[roomId] = {
       host: socket.id,
-      guest: null
+      guest: null,
+      turn: socket.id
     };
 
     socket.join(roomId);
 
-    console.log("방 생성:", roomId);
-
     socket.emit("roomCreated", roomId);
+
+    console.log("방 생성:", roomId);
   });
 
   socket.on("joinRoom", (roomId) => {
 
-    console.log("참가 요청:", roomId);
-
     const room = rooms[roomId];
 
     if (!room) {
-      socket.emit("errorMessage", "방이 존재하지 않습니다.");
+      socket.emit(
+        "errorMessage",
+        "방이 존재하지 않습니다."
+      );
       return;
     }
 
     if (room.guest) {
-      socket.emit("errorMessage", "방이 가득 찼습니다.");
+      socket.emit(
+        "errorMessage",
+        "방이 가득 찼습니다."
+      );
       return;
     }
 
@@ -57,25 +60,37 @@ io.on("connection", (socket) => {
 
     socket.join(roomId);
 
-    console.log("게임 시작:", roomId);
+    io.to(roomId).emit("startGame", {
+      turn: room.turn
+    });
 
-    io.to(roomId).emit("startGame");
+    console.log("게임 시작");
   });
 
-  socket.on("disconnect", () => {
+  socket.on("playCard", ({ roomId }) => {
 
-    for (const roomId in rooms) {
+    const room = rooms[roomId];
 
-      const room = rooms[roomId];
+    if (!room) return;
 
-      if (
-        room.host === socket.id ||
-        room.guest === socket.id
-      ) {
-        delete rooms[roomId];
-        console.log("방 삭제:", roomId);
-      }
+    // 자기 턴만 가능
+    if (room.turn !== socket.id) {
+      socket.emit(
+        "errorMessage",
+        "상대 턴입니다."
+      );
+      return;
     }
+
+    // 턴 변경
+    room.turn =
+      socket.id === room.host
+        ? room.guest
+        : room.host;
+
+    io.to(roomId).emit("turnChanged", {
+      turn: room.turn
+    });
   });
 
 });
@@ -83,5 +98,5 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`포트 ${PORT} 실행중`);
+  console.log("서버 실행중");
 });
