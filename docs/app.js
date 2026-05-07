@@ -40,3 +40,12 @@ socket.on("roomCreated", (roomId) => {
 socket.on("startGame", () => {
   alert("게임 시작!");
 });
+
+
+socket.on("errorMessage", (msg) => {
+  alert(msg);
+});
+
+socket.on("startGame", () => {
+  alert("게임 시작!");
+});
