@@ -1,24 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Gostop</title>
+  <title>GoStop Game</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="style.css">
+
+  <!-- favicon 에러 방지 -->
+  <link rel="icon" href="data:,">
 </head>
+
 <body>
 
-<h1>🎴 Gostop</h1>
+  <!-- =========================
+       ROOM UI
+  ========================== -->
+  <div id="roomArea">
+    <h2>GoStop Room</h2>
 
-<button onclick="createRoom()">방 만들기</button>
-<input id="roomInput" placeholder="방 코드">
-<button onclick="joinRoom()">참가</button>
+    <button onclick="createRoom()">방 만들기</button>
 
-<div id="status"></div>
-<div id="game"></div>
+    <input id="inputRoom" placeholder="방 번호 입력">
+    <button onclick="joinRoom()">참가</button>
 
-<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-<script src="app.js"></script>
+    <div>
+      Room ID: <span id="roomId"></span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- =========================
+       GAME AREA
+  ========================== -->
+  <div id="gameArea">
+
+    <h3>Table</h3>
+    <div id="table"></div>
+
+    <h3>My Hand</h3>
+    <div id="hand"></div>
+
+  </div>
+
+  <hr>
+
+  <!-- =========================
+       SHARE MODAL
+  ========================== -->
+  <button id="shareBtn">Share</button>
+
+  <div id="shareModal" style="display:none;">
+    <div class="modal-content">
+      <button id="closeModal">Close</button>
+      <p>Share this room!</p>
+    </div>
+  </div>
+
+  <!-- =========================
+       SCRIPTS (중요 순서)
+  ========================== -->
+
+  <!-- socket.io (서버가 제공하는 스크립트) -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- game client logic -->
+  <script src="app.js"></script>
+
+  <!-- modal logic -->
+  <script src="share-modal.js"></script>
 
 </body>
 </html>
