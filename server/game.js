@@ -1,116 +1,67 @@
-// =============================
-// GAME STATE (단일 진실 구조)
-// =============================
-const state = {
-  roomId: null,
-  players: {}, // socketId 기반
-  turn: null,  // 현재 턴 socketId
-  table: [],   // 바닥패
-};
+class Game {
+  constructor() {
+    this.rooms = {}; 
+  }
 
-// =============================
-// SOCKET CONNECT
-// =============================
-const socket = io();
+  createRoom(roomId) {
+    this.rooms[roomId] = {
+      players: {},     // socketId: playerData
+      turnOrder: [],   // socketId 순서
+      turnIndex: 0,
+      table: [],
+    };
+  }
 
-// =============================
-// ROOM JOIN
-// =============================
-function joinRoom(roomId) {
-  state.roomId = roomId;
-  socket.emit("joinRoom", { roomId });
+  joinRoom(roomId, socketId) {
+    const room = this.rooms[roomId];
+    if (!room) return;
+
+    room.players[socketId] = {
+      hand: [],
+    };
+
+    room.turnOrder.push(socketId);
+
+    // 첫 플레이어 턴 설정
+    if (room.turnOrder.length === 1) {
+      room.turnIndex = 0;
+    }
+  }
+
+  getState(roomId) {
+    return this.rooms[roomId];
+  }
+
+  isMyTurn(roomId, socketId) {
+    const room = this.rooms[roomId];
+    if (!room) return false;
+
+    return room.turnOrder[room.turnIndex] === socketId;
+  }
+
+  takeCard(roomId, socketId, cardId) {
+    const room = this.rooms[roomId];
+    if (!room) return;
+
+    // 🔥 핵심: 턴 검증 (서버만 권한)
+    if (!this.isMyTurn(roomId, socketId)) return;
+
+    // 바닥패에서 제거
+    room.table = room.table.filter(c => c.id !== cardId);
+
+    // 플레이어 손패로 이동
+    const player = room.players[socketId];
+    if (player) {
+      player.hand.push({ id: cardId });
+    }
+  }
+
+  endTurn(roomId) {
+    const room = this.rooms[roomId];
+    if (!room) return;
+
+    room.turnIndex = (room.turnIndex + 1) % room.turnOrder.length;
+  }
 }
 
-// =============================
-// SERVER SYNC (핵심)
-// =============================
-socket.on("stateUpdate", (serverState) => {
-  state.players = serverState.players;
-  state.turn = serverState.turn;
-  state.table = serverState.table;
-
-  renderTable();
-  renderHand();
-});
-
-// =============================
-// 내 턴 체크 (핵심 수정 포인트)
-// =============================
-function isMyTurn() {
-  return socket.id === state.turn;
-}
-
-// =============================
-// 바닥패 먹기 (핵심 로직)
-// =============================
-function takeCard(cardId) {
-  // ❌ 기존 문제: PC/모바일 로직 분리 or device 기준 체크
-  // ❌ if (isPC || isMobile) 따로 판단 이런 구조
-
-  // ✅ 수정: 서버 기준 턴만 허용
-  if (!isMyTurn()) return;
-
-  socket.emit("takeCard", {
-    roomId: state.roomId,
-    cardId: cardId,
-  });
-}
-
-// =============================
-// 서버가 실제 처리 (중요)
-// =============================
-socket.on("cardTaken", (data) => {
-  // 서버가 검증 완료 후 상태 브로드캐스트
-  state.table = data.table;
-  state.players = data.players;
-  state.turn = data.turn;
-
-  renderTable();
-  renderHand();
-});
-
-// =============================
-// 턴 넘기기
-// =============================
-function endTurn() {
-  if (!isMyTurn()) return;
-
-  socket.emit("endTurn", {
-    roomId: state.roomId,
-  });
-}
-
-// =============================
-// 렌더링 (UI)
-// =============================
-function renderTable() {
-  const el = document.getElementById("table");
-  el.innerHTML = "";
-
-  state.table.forEach(card => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerText = card.id;
-
-    // 클릭으로 먹기
-    div.onclick = () => takeCard(card.id);
-
-    el.appendChild(div);
-  });
-}
-
-function renderHand() {
-  const me = state.players[socket.id];
-  if (!me) return;
-
-  const el = document.getElementById("hand");
-  el.innerHTML = "";
-
-  me.hand.forEach(card => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerText = card.id;
-
-    el.appendChild(div);
-  });
-}
+module.exports = new Game();
