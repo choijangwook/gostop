@@ -84,7 +84,7 @@ socket.on("stateUpdate", (s) => {
 
   renderCaptured();
 
-  // 턴
+  // 턴 표시
   document.getElementById("turn")
     .innerText =
       state.turn === myId
@@ -112,13 +112,15 @@ socket.on("stateUpdate", (s) => {
 });
 
 // =========================
-// 바닥패
+// 바닥패 렌더
 // =========================
 
 function renderTable() {
 
   const table =
     document.getElementById("table");
+
+  if (!table) return;
 
   table.innerHTML = "";
 
@@ -135,7 +137,7 @@ function renderTable() {
 }
 
 // =========================
-// 내패
+// 내 패 렌더
 // =========================
 
 function renderHand() {
@@ -143,12 +145,26 @@ function renderHand() {
   const handDiv =
     document.getElementById("hand");
 
+  if (!handDiv) return;
+
   handDiv.innerHTML = "";
 
-  const hand =
-    state.hands?.[myId] || [];
+  // 내 손패 가져오기
+  let myHand = [];
 
-  hand.forEach(card => {
+  if (state.hands) {
+
+    // object 구조
+    if (!Array.isArray(state.hands)) {
+
+      myHand =
+        state.hands[myId] || [];
+    }
+  }
+
+  console.log("myHand:", myHand);
+
+  myHand.forEach(card => {
 
     const img =
       document.createElement("img");
@@ -214,7 +230,7 @@ function renderCaptured() {
 }
 
 // =========================
-// 줄 초기화
+// 초기화
 // =========================
 
 function clearCaptured() {
@@ -259,7 +275,7 @@ function getCardType(card) {
 }
 
 // =========================
-// 렌더 위치
+// 어느 줄인지
 // =========================
 
 function getCaptureRow(playerId, card) {
