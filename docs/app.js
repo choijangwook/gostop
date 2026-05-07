@@ -1,18 +1,17 @@
-const socket = io(
-  "https://gostop-server.onrender.com"
-);
-
-console.log("app.js 정상 로드됨");
+const socket =
+  io("https://gostop-server.onrender.com");
 
 let currentRoom = "";
+let myHand = [];
+let table = [];
+let capture = [];
 let currentTurn = "";
 
 socket.on("connect", () => {
-  console.log("서버 연결됨:", socket.id);
+  console.log("서버 연결됨");
 });
 
 function createRoom() {
-
   socket.emit("createRoom");
 }
 
@@ -20,11 +19,6 @@ function joinRoom() {
 
   const roomId =
     document.getElementById("roomInput").value;
-
-  if (!roomId) {
-    alert("방 코드를 입력하세요");
-    return;
-  }
 
   socket.emit("joinRoom", roomId);
 }
@@ -39,69 +33,84 @@ socket.on("roomCreated", (roomId) => {
   alert("방 코드: " + roomId);
 });
 
-socket.on("errorMessage", (msg) => {
-  alert(msg);
+socket.on("startGame", () => {
+  console.log("게임 시작");
 });
 
-socket.on("startGame", (data) => {
+socket.on("updateState", (state) => {
 
-  currentTurn = data.turn;
+  myHand = state.myHand;
+  table = state.table;
+  capture = state.capture;
+  currentTurn = state.turn;
 
-  renderGame();
+  render();
 });
 
-socket.on("turnChanged", (data) => {
+function render() {
 
-  currentTurn = data.turn;
+  document.getElementById("game").innerHTML = `
 
-  renderTurn();
-});
+    <h2>
+      ${
+        currentTurn === socket.id
+        ? "🟢 내 턴"
+        : "⏳ 상대 턴"
+      }
+    </h2>
 
-function renderGame() {
-
-  const game =
-    document.getElementById("game");
-
-  game.innerHTML = `
-    <h2 id="turnText"></h2>
+    <h3>바닥 패</h3>
 
     <div class="cards">
 
-      <img src="cards/1_junk1.png"
-        onclick="playCard()">
+      ${
+        table.map(card => `
 
-      <img src="cards/2_junk1.png"
-        onclick="playCard()">
+          <img
+            src="cards/${card.file}"
+          >
 
-      <img src="cards/3_junk1.png"
-        onclick="playCard()">
+        `).join("")
+      }
+
+    </div>
+
+    <h3>내 패</h3>
+
+    <div class="cards">
+
+      ${
+        myHand.map((card, index) => `
+
+          <img
+            src="cards/${card.file}"
+            onclick="playCard(${index})"
+          >
+
+        `).join("")
+      }
+
+    </div>
+
+    <h3>먹은 패</h3>
+
+    <div class="cards">
+
+      ${
+        capture.map(card => `
+
+          <img
+            src="cards/${card.file}"
+          >
+
+        `).join("")
+      }
 
     </div>
   `;
-
-  renderTurn();
 }
 
-function renderTurn() {
-
-  const text =
-    document.getElementById("turnText");
-
-  if (!text) return;
-
-  if (currentTurn === socket.id) {
-
-    text.innerHTML =
-      "🟢 내 턴";
-
-  } else {
-
-    text.innerHTML =
-      "⏳ 상대 턴";
-  }
-}
-
-function playCard() {
+function playCard(index) {
 
   if (currentTurn !== socket.id) {
 
@@ -110,6 +119,7 @@ function playCard() {
   }
 
   socket.emit("playCard", {
-    roomId: currentRoom
+    roomId: currentRoom,
+    index
   });
 }
