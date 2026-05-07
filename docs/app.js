@@ -2,13 +2,12 @@ const socket = io("https://gostop-server.onrender.com");
 
 let state = null;
 let myId = null;
-let selectedHand = null;
+let selected = null;
 
 socket.on("connect", () => {
   myId = socket.id;
 });
 
-// =========================
 function joinRoom() {
   const roomId = Number(document.getElementById("roomInput").value);
 
@@ -27,8 +26,6 @@ socket.on("stateUpdate", (s) => {
 });
 
 // =========================
-// Table (먹기 대상)
-// =========================
 function renderTable() {
 
   const el = document.getElementById("table");
@@ -39,23 +36,21 @@ function renderTable() {
     const img = document.createElement("img");
     img.src = "cards/" + card;
 
-    img.addEventListener("click", () => {
-      if (!selectedHand) return;
+    img.onclick = () => {
+      if (!selected) return;
 
       socket.emit("takeCard", {
         roomId: state.roomId,
         tableCard: card
       });
 
-      selectedHand = null;
-    });
+      selected = null;
+    };
 
     el.appendChild(img);
   });
 }
 
-// =========================
-// My Hand (선택)
 // =========================
 function renderHand() {
 
@@ -69,37 +64,19 @@ function renderHand() {
     const img = document.createElement("img");
     img.src = "cards/" + card;
 
-    img.addEventListener("click", (e) => {
-      e.preventDefault();
-
-      selectedHand = card;
+    img.onclick = () => {
+      selected = card;
 
       socket.emit("selectHand", {
         roomId: state.roomId,
         card
       });
-    });
-
-    // 🔥 모바일 클릭 안정화
-    img.style.touchAction = "manipulation";
+    };
 
     el.appendChild(img);
   });
-
-  const btn = document.createElement("button");
-  btn.innerText = "특수카드";
-
-  btn.onclick = () => {
-    socket.emit("useSpecial", {
-      roomId: state.roomId
-    });
-  };
-
-  el.appendChild(btn);
 }
 
-// =========================
-// Captured
 // =========================
 function renderCaptured() {
 
@@ -111,6 +88,7 @@ function renderCaptured() {
   list.forEach(card => {
     const img = document.createElement("img");
     img.src = "cards/" + card;
+    img.style.width = "35px";
     el.appendChild(img);
   });
 }
