@@ -1,91 +1,34 @@
 const socket = io("https://gostop-server.onrender.com");
 
-let state = null;
-let myId = null;
+let currentRoom = null;
 
 // =========================
-// 연결
-// =========================
-socket.on("connect", () => {
-  myId = socket.id;
-  console.log("connected:", myId);
-});
-
-// =========================
-// 서버 상태 수신
-// =========================
-socket.on("stateUpdate", (serverState) => {
-  state = serverState;
-  render();
-});
-
-// =========================
-// 방 만들기
-// =========================
-function createRoom() {
-  const roomId = Math.floor(Math.random() * 100000);
-
-  socket.emit("createRoom", { roomId });
-
-  document.getElementById("roomId").innerText = roomId;
-}
-
-// =========================
-// 방 참가
+// 방 참가 (핵심 기능)
 // =========================
 function joinRoom() {
-  const roomId = document.getElementById("inputRoom").value;
+  const roomId = document.getElementById("roomInput").value;
 
-  socket.emit("joinRoom", { roomId });
-}
+  if (!roomId) return;
 
-// =========================
-// 턴 체크
-// =========================
-function isMyTurn() {
-  if (!state) return false;
-  return state.turnOrder[state.turnIndex] === myId;
-}
+  const numRoom = Number(roomId);
 
-// =========================
-// 카드 먹기
-// =========================
-function takeCard(cardId) {
-  if (!isMyTurn()) return;
-
-  socket.emit("takeCard", {
-    roomId: state.roomId,
-    cardId: cardId,
-  });
-}
-
-// =========================
-// 렌더
-// =========================
-function render() {
-  if (!state) return;
-
-  const table = document.getElementById("table");
-  table.innerHTML = "";
-
-  state.table.forEach(card => {
-    const el = document.createElement("div");
-    el.innerText = card.id;
-
-    el.onclick = () => takeCard(card.id);
-
-    table.appendChild(el);
-  });
-
-  const hand = document.getElementById("hand");
-  hand.innerHTML = "";
-
-  const me = state.players?.[myId];
-  if (me) {
-    me.hand.forEach(card => {
-      const el = document.createElement("div");
-      el.innerText = card.id;
-      hand.appendChild(el);
-    });
+  if (numRoom < 100 || numRoom > 999) {
+    alert("3자리 숫자만 가능합니다 (100~999)");
+    return;
   }
+
+  socket.emit("joinRoom", {
+    roomId: numRoom
+  });
+
+  currentRoom = numRoom;
+
+  document.getElementById("roomId").innerText = numRoom;
 }
+
+// =========================
+// 서버 상태 확인
+// =========================
+socket.on("stateUpdate", (state) => {
+  console.log("room state:", state);
+});
