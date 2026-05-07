@@ -2,14 +2,17 @@ const socket = io("https://gostop-server.onrender.com");
 
 let state = null;
 let myId = null;
-let selected = null;
 
 socket.on("connect", () => {
   myId = socket.id;
 });
 
+// =========================
 function joinRoom() {
-  const roomId = Number(document.getElementById("roomInput").value);
+
+  const roomId = Number(
+    document.getElementById("roomInput").value
+  );
 
   socket.emit("joinRoom", { roomId });
 
@@ -18,6 +21,7 @@ function joinRoom() {
 
 // =========================
 socket.on("stateUpdate", (s) => {
+
   state = s;
 
   renderTable();
@@ -26,31 +30,24 @@ socket.on("stateUpdate", (s) => {
 });
 
 // =========================
+// Table
+// =========================
 function renderTable() {
 
   const el = document.getElementById("table");
   el.innerHTML = "";
 
-  state.table.forEach(card => {
+  (state.table || []).forEach(card => {
 
     const img = document.createElement("img");
     img.src = "cards/" + card;
-
-    img.onclick = () => {
-      if (!selected) return;
-
-      socket.emit("takeCard", {
-        roomId: state.roomId,
-        tableCard: card
-      });
-
-      selected = null;
-    };
 
     el.appendChild(img);
   });
 }
 
+// =========================
+// My Hand
 // =========================
 function renderHand() {
 
@@ -64,10 +61,10 @@ function renderHand() {
     const img = document.createElement("img");
     img.src = "cards/" + card;
 
+    // 🔥 핵심 수정
     img.onclick = () => {
-      selected = card;
 
-      socket.emit("selectHand", {
+      socket.emit("playCard", {
         roomId: state.roomId,
         card
       });
@@ -78,17 +75,21 @@ function renderHand() {
 }
 
 // =========================
+// Captured
+// =========================
 function renderCaptured() {
 
   const el = document.getElementById("captured");
   el.innerHTML = "";
 
-  const list = state.captured?.[myId] || [];
+  const captured = state.captured?.[myId] || [];
 
-  list.forEach(card => {
+  captured.forEach(card => {
+
     const img = document.createElement("img");
     img.src = "cards/" + card;
     img.style.width = "35px";
+
     el.appendChild(img);
   });
 }
