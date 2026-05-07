@@ -92,21 +92,6 @@ function createDeck() {
 const rooms = {};
 
 // =========================
-function emitState(roomId) {
-
-  const room = rooms[roomId];
-  if (!room) return;
-
-  io.to(roomId).emit("stateUpdate", {
-    roomId,
-    table: room.table,
-    hands: room.hands,
-    captured: room.captured,
-    turn: room.turn
-  });
-}
-
-// =========================
 function nextTurn(room) {
 
   if (room.players.length === 0) return;
@@ -118,6 +103,46 @@ function nextTurn(room) {
   }
 
   room.turn = room.players[room.turnIndex];
+}
+
+// =========================
+function captureCard(room, playerId, card) {
+
+  const month = card.split("_")[0];
+
+  const matchIndex = room.table.findIndex(
+    c => c.startsWith(month + "_")
+  );
+
+  // 먹기 성공
+  if (matchIndex !== -1) {
+
+    const matched = room.table.splice(matchIndex, 1)[0];
+
+    room.captured[playerId].push(card);
+    room.captured[playerId].push(matched);
+
+  } else {
+
+    room.table.push(card);
+  }
+}
+
+// =========================
+function emitState(roomId) {
+
+  const room = rooms[roomId];
+  if (!room) return;
+
+  io.to(roomId).emit("stateUpdate", {
+    roomId,
+    table: room.table,
+    hands: room.hands,
+    captured: room.captured,
+    turn: room.turn,
+    deckCount: room.deck.length,
+    gameOver: room.deck.length === 0
+  });
 }
 
 // =========================
@@ -155,7 +180,6 @@ io.on("connection", (socket) => {
       room.players.push(socket.id);
     }
 
-    // 첫 턴 지정
     if (!room.turn) {
       room.turn = socket.id;
     }
@@ -179,7 +203,7 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    // 🔥 내 턴 아닐 경우 차단
+    // 턴 아닐 경우 차단
     if (room.turn !== socket.id) return;
 
     const hand = room.hands[socket.id];
@@ -189,6 +213,7 @@ io.on("connection", (socket) => {
 
     if (handIndex === -1) return;
 
+    // 손패 제거
     hand.splice(handIndex, 1);
 
     // =========================
@@ -198,10 +223,10 @@ io.on("connection", (socket) => {
 
       room.captured[socket.id].push(card);
 
-      const draw = room.deck.shift();
+      const extra = room.deck.shift();
 
-      if (draw) {
-        hand.push(draw);
+      if (extra) {
+        hand.push(extra);
       }
 
       nextTurn(room);
@@ -212,32 +237,24 @@ io.on("connection", (socket) => {
     }
 
     // =========================
-    // 월 찾기
+    // 1차 먹기
     // =========================
-    const month = card.split("_")[0];
-
-    const matchIndex = room.table.findIndex(
-      c => c.startsWith(month + "_")
-    );
+    captureCard(room, socket.id, card);
 
     // =========================
-    // 먹기 성공
+    // 드로우
     // =========================
-    if (matchIndex !== -1) {
+    const drawCard = room.deck.shift();
 
-      const matched =
-        room.table.splice(matchIndex, 1)[0];
+    if (drawCard) {
 
-      room.captured[socket.id].push(card);
-      room.captured[socket.id].push(matched);
-
-    } else {
-
-      // 못 먹으면 바닥으로
-      room.table.push(card);
+      // 드로우 카드 먹기 처리
+      captureCard(room, socket.id, drawCard);
     }
 
-    // 🔥 턴 변경
+    // =========================
+    // 턴 변경
+    // =========================
     nextTurn(room);
 
     emitState(roomId);
@@ -258,13 +275,11 @@ io.on("connection", (socket) => {
       delete room.hands[socket.id];
       delete room.captured[socket.id];
 
-      // 턴 보정
       if (room.turn === socket.id) {
 
         room.turnIndex = 0;
 
-        room.turn =
-          room.players[0] || null;
+        room.turn = room.players[0] || null;
       }
 
       if (room.players.length === 0) {
