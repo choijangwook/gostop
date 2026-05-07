@@ -13,6 +13,8 @@ let table = [];
 
 let capture = [];
 
+let opponentCapture = [];
+
 let currentTurn = "";
 
 
@@ -97,6 +99,8 @@ socket.on("startGame", () => {
 // =========================
 socket.on("errorMessage", (msg) => {
 
+  console.log("에러:", msg);
+
   alert(msg);
 });
 
@@ -111,11 +115,14 @@ socket.on("updateState", (state) => {
     state
   );
 
-  myHand = state.myHand;
+  myHand = state.myHand || [];
 
-  table = state.table;
+  table = state.table || [];
 
-  capture = state.capture;
+  capture = state.capture || [];
+
+  opponentCapture =
+    state.opponentCapture || [];
 
   currentTurn = state.turn;
 
@@ -141,6 +148,25 @@ function render() {
       }
     </h2>
 
+
+    <h3>상대 먹은 패</h3>
+
+    <div class="cards">
+
+      ${
+        opponentCapture.map(card => `
+
+          <img
+            src="cards/${card.file}"
+            class="card"
+          >
+
+        `).join("")
+      }
+
+    </div>
+
+
     <h3>바닥 패</h3>
 
     <div class="cards">
@@ -158,6 +184,7 @@ function render() {
 
     </div>
 
+
     <h3>내 패</h3>
 
     <div class="cards">
@@ -168,13 +195,14 @@ function render() {
           <img
             src="cards/${card.file}"
             class="card hand-card"
-            onclick="playCard(${card.id})"
+            data-id="${card.id}"
           >
 
         `).join("")
       }
 
     </div>
+
 
     <h3>먹은 패</h3>
 
@@ -193,6 +221,26 @@ function render() {
 
     </div>
   `;
+
+
+  // =========================
+  // 카드 클릭 이벤트 재연결
+  // 모바일 안정화 핵심
+  // =========================
+  document
+    .querySelectorAll(".hand-card")
+    .forEach(cardEl => {
+
+      cardEl.onclick = () => {
+
+        const cardId =
+          Number(
+            cardEl.dataset.id
+          );
+
+        playCard(cardId);
+      };
+    });
 }
 
 
@@ -206,7 +254,11 @@ function playCard(cardId) {
     cardId
   );
 
-  if (currentTurn !== socket.id) {
+  // 🔥 모바일 안정화
+  if (
+    String(currentTurn) !==
+    String(socket.id)
+  ) {
 
     alert("상대 턴입니다.");
 
@@ -217,6 +269,6 @@ function playCard(cardId) {
 
     roomId: currentRoom,
 
-    cardId
+    cardId: Number(cardId)
   });
 }
