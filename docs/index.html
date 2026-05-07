@@ -2,69 +2,26 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>GoStop Game</title>
-
+  <title>GoStop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link rel="stylesheet" href="style.css">
-
-  <!-- favicon 에러 방지 -->
   <link rel="icon" href="data:,">
 </head>
 
 <body>
 
-  <!-- =========================
-       ROOM AREA
-  ========================== -->
-  <h2>GoStop Room</h2>
+<h2>GoStop Room</h2>
 
-  <button onclick="createRoom()">방 만들기</button>
+<!-- 방 번호 입력 -->
+<input id="roomInput" placeholder="3자리 방 번호 (예: 123)">
 
-  <input id="inputRoom" placeholder="방 번호 입력">
-  <button onclick="joinRoom()">참가</button>
+<!-- 참가 버튼만 -->
+<button onclick="joinRoom()">참가</button>
 
-  <div>
-    Room ID: <span id="roomId"></span>
-  </div>
+<p>Room ID: <span id="roomId"></span></p>
 
-  <hr>
-
-  <!-- =========================
-       GAME AREA
-  ========================== -->
-  <h3>Table</h3>
-  <div id="table"></div>
-
-  <h3>My Hand</h3>
-  <div id="hand"></div>
-
-  <hr>
-
-  <!-- =========================
-       SHARE MODAL
-  ========================== -->
-  <button id="shareBtn">Share</button>
-
-  <div id="shareModal" style="display:none;">
-    <div>
-      <button id="closeModal">Close</button>
-      <p>Share this room!</p>
-    </div>
-  </div>
-
-  <!-- =========================
-       SCRIPTS (중요 순서)
-  ========================== -->
-
-  <!-- 🔥 Render 서버 socket -->
-  <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-
-  <!-- 게임 로직 -->
-  <script src="app.js"></script>
-
-  <!-- 모달 -->
-  <script src="share-modal.js"></script>
+<!-- socket -->
+<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
