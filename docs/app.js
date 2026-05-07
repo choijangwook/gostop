@@ -7,50 +7,45 @@ socket.on("connect", () => {
   myId = socket.id;
 });
 
-let selectedHand = null;
+let selected = null;
 
 // =========================
 function joinRoom() {
   const roomId = Number(document.getElementById("roomInput").value);
+
   socket.emit("joinRoom", { roomId });
-  document.getElementById("roomId").innerText = roomId;
+
+  // 🔥 로비 제거 (모바일 최적화)
+  document.getElementById("lobby").style.display = "none";
 }
 
 // =========================
 socket.on("stateUpdate", (s) => {
   state = s;
-  renderPlayers();
+
   renderTable();
   renderHand();
+  renderCaptured();
 });
 
 // =========================
-function renderPlayers() {
-  const el = document.getElementById("players");
-  el.innerHTML = "";
-
-  state.players.forEach(p => {
-    const li = document.createElement("li");
-    const score = state.score?.[p] || 0;
-    li.innerText = (p === myId ? p + " (me)" : p) + " | score: " + score;
-    el.appendChild(li);
-  });
-}
-
-// =========================
-// Table (먹기 대상)
+// Table
 // =========================
 function renderTable() {
+
   const el = document.getElementById("table");
   el.innerHTML = "";
 
   state.table.forEach(card => {
+
     const img = document.createElement("img");
     img.src = "cards/" + card;
-    img.style.width = "60px";
-    img.style.margin = "5px";
+    img.style.width = "70px";
 
     img.onclick = () => {
+
+      if (!selected) return; // 🔥 핵심 차단
+
       socket.emit("takeCard", {
         roomId: state.roomId,
         tableCard: card
@@ -62,22 +57,23 @@ function renderTable() {
 }
 
 // =========================
-// My Hand (선택)
+// Hand
 // =========================
 function renderHand() {
+
   const el = document.getElementById("hand");
   el.innerHTML = "";
 
   const hand = state.hands?.[myId] || [];
 
   hand.forEach(card => {
+
     const img = document.createElement("img");
     img.src = "cards/" + card;
-    img.style.width = "60px";
-    img.style.margin = "5px";
+    img.style.width = "70px";
 
     img.onclick = () => {
-      selectedHand = card;
+      selected = card;
 
       socket.emit("selectHand", {
         roomId: state.roomId,
@@ -98,4 +94,22 @@ function renderHand() {
   };
 
   el.appendChild(btn);
+}
+
+// =========================
+// 먹은 카드
+// =========================
+function renderCaptured() {
+
+  const el = document.getElementById("captured");
+  el.innerHTML = "";
+
+  const list = state.captured?.[myId] || [];
+
+  list.forEach(card => {
+    const img = document.createElement("img");
+    img.src = "cards/" + card;
+    img.style.width = "40px";
+    el.appendChild(img);
+  });
 }
