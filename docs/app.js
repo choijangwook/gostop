@@ -9,6 +9,19 @@ let state = null;
 
 let myId = null;
 
+let playerMode = 2;
+
+// =========================
+// 모드 선택
+// =========================
+
+function setMode(mode) {
+
+  playerMode = mode;
+
+  alert(mode + "인용 선택");
+}
+
 // =========================
 // 연결
 // =========================
@@ -21,7 +34,7 @@ socket.on("connect", () => {
 });
 
 // =========================
-// 방 참가
+// 참가
 // =========================
 
 function joinRoom() {
@@ -34,7 +47,10 @@ function joinRoom() {
   if (!roomId) return;
 
   socket.emit("joinRoom", {
-    roomId
+
+    roomId,
+
+    mode: playerMode
   });
 
   document.getElementById("lobby")
@@ -42,6 +58,8 @@ function joinRoom() {
 
   document.getElementById("game")
     .style.display = "block";
+
+  applyModeLayout();
 }
 
 // =========================
@@ -57,7 +75,11 @@ function playWithBot() {
     .value = roomId;
 
   socket.emit("joinRoom", {
+
     roomId,
+
+    mode: 2,
+
     bot: true
   });
 
@@ -66,17 +88,66 @@ function playWithBot() {
 
   document.getElementById("game")
     .style.display = "block";
+
+  playerMode = 2;
+
+  applyModeLayout();
+}
+
+// =========================
+// 2인/3인 레이아웃
+// =========================
+
+function applyModeLayout() {
+
+  const enemy2 =
+    document.getElementById(
+      "enemy2Section"
+    );
+
+  const enemy1Title =
+    document.getElementById(
+      "enemy1Title"
+    );
+
+  const game =
+    document.getElementById("game");
+
+  // 2인용
+
+  if (playerMode === 2) {
+
+    if (enemy2)
+      enemy2.style.display = "none";
+
+    if (enemy1Title)
+      enemy1Title.innerText =
+        "상대방이 먹은패";
+
+    if (game)
+      game.style.height = "100vh";
+  }
+
+  // 3인용
+
+  else {
+
+    if (enemy2)
+      enemy2.style.display = "block";
+
+    if (enemy1Title)
+      enemy1Title.innerText =
+        "1번 상대 먹은패";
+  }
 }
 
 // =========================
 // 상태 업데이트
 // =========================
 
-socket.on("stateUpdate", (s) => {
+socket.on("stateUpdate", s => {
 
   state = s;
-
-  console.log("state:", state);
 
   renderTable();
 
@@ -85,6 +156,7 @@ socket.on("stateUpdate", (s) => {
   renderCaptured();
 
   // 턴 표시
+
   document.getElementById("turn")
     .innerText =
       state.turn === myId
@@ -92,27 +164,25 @@ socket.on("stateUpdate", (s) => {
         : "⏳ 상대 턴";
 
   // 남은패
+
   document.getElementById("deck")
     .innerText =
       "남은패 : " + state.deckCount;
 
   // 승패
+
   if (state.winner) {
 
     document.getElementById("winner")
       .innerText =
-        state.winner === "draw"
-          ? "무승부"
-          : (
-              state.winner === myId
-                ? "승리!"
-                : "패배"
-            );
+        state.winner === myId
+          ? "승리!"
+          : "패배";
   }
 });
 
 // =========================
-// 바닥패 렌더
+// 바닥패
 // =========================
 
 function renderTable() {
@@ -137,7 +207,7 @@ function renderTable() {
 }
 
 // =========================
-// 내 패 렌더
+// 내 패
 // =========================
 
 function renderHand() {
@@ -149,20 +219,8 @@ function renderHand() {
 
   handDiv.innerHTML = "";
 
-  // 내 손패 가져오기
-  let myHand = [];
-
-  if (state.hands) {
-
-    // object 구조
-    if (!Array.isArray(state.hands)) {
-
-      myHand =
-        state.hands[myId] || [];
-    }
-  }
-
-  console.log("myHand:", myHand);
+  const myHand =
+    state.hands?.[myId] || [];
 
   myHand.forEach(card => {
 
@@ -178,7 +236,9 @@ function renderHand() {
         return;
 
       socket.emit("playCard", {
+
         roomId: state.roomId,
+
         card
       });
     };
@@ -188,7 +248,7 @@ function renderHand() {
 }
 
 // =========================
-// 먹은패 렌더
+// 먹은패
 // =========================
 
 function renderCaptured() {
@@ -197,6 +257,10 @@ function renderCaptured() {
 
   if (!state.captured)
     return;
+
+  const enemies =
+    Object.keys(state.captured)
+      .filter(id => id !== myId);
 
   Object.keys(state.captured)
     .forEach(playerId => {
@@ -209,11 +273,11 @@ function renderCaptured() {
         const row =
           getCaptureRow(
             playerId,
-            card
+            card,
+            enemies
           );
 
-        if (!row)
-          return;
+        if (!row) return;
 
         const img =
           document.createElement("img");
@@ -236,17 +300,23 @@ function renderCaptured() {
 function clearCaptured() {
 
   [
-    "enemyBright",
-    "enemyAnimal",
-    "enemyRibbon",
-    "enemyJunk",
+
+    "enemy1Bright",
+    "enemy1Animal",
+    "enemy1Ribbon",
+    "enemy1Junk",
+
+    "enemy2Bright",
+    "enemy2Animal",
+    "enemy2Ribbon",
+    "enemy2Junk",
 
     "myBright",
     "myAnimal",
     "myRibbon",
     "myJunk"
-  ]
-  .forEach(id => {
+
+  ].forEach(id => {
 
     const el =
       document.getElementById(id);
@@ -278,20 +348,41 @@ function getCardType(card) {
 // 어느 줄인지
 // =========================
 
-function getCaptureRow(playerId, card) {
-
-  const mine =
-    playerId === myId;
+function getCaptureRow(
+  playerId,
+  card,
+  enemies
+) {
 
   const type =
     getCardType(card);
 
-  const prefix =
-    mine
-      ? "my"
-      : "enemy";
+  // 내 패
 
-  return document.getElementById(
-    prefix + type
-  );
+  if (playerId === myId) {
+
+    return document.getElementById(
+      "my" + type
+    );
+  }
+
+  // 적1
+
+  if (playerId === enemies[0]) {
+
+    return document.getElementById(
+      "enemy1" + type
+    );
+  }
+
+  // 적2
+
+  if (playerId === enemies[1]) {
+
+    return document.getElementById(
+      "enemy2" + type
+    );
+  }
+
+  return null;
 }
