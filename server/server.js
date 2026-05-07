@@ -26,24 +26,30 @@ function createCards() {
 
   const cards = [];
 
+  let id = 0;
+
   for (let month = 1; month <= 12; month++) {
 
     cards.push({
+      id: id++,
       month,
       file: `${month}_junk1.png`
     });
 
     cards.push({
+      id: id++,
       month,
       file: `${month}_junk2.png`
     });
 
     cards.push({
+      id: id++,
       month,
       file: `${month}_animal.png`
     });
 
     cards.push({
+      id: id++,
       month,
       file: `${month}_ribbon.png`
     });
@@ -55,7 +61,7 @@ function createCards() {
 
 
 // =========================
-// 중복 없는 3자리 숫자 방번호
+// 숫자 3자리 방번호 생성
 // =========================
 function generateRoomId() {
 
@@ -64,8 +70,9 @@ function generateRoomId() {
   do {
 
     roomId =
-      Math.floor(100 + Math.random() * 900)
-      .toString();
+      Math.floor(
+        100 + Math.random() * 900
+      ).toString();
 
   } while (rooms[roomId]);
 
@@ -74,7 +81,45 @@ function generateRoomId() {
 
 
 // =========================
-// 연결
+// 상태 전송
+// =========================
+function sendState(roomId) {
+
+  const room = rooms[roomId];
+
+  if (!room) return;
+
+  // host
+  io.to(room.host).emit("updateState", {
+
+    myHand: room.hostHand,
+
+    table: room.table,
+
+    capture: room.hostCapture,
+
+    turn: room.turn
+  });
+
+  // guest
+  if (room.guest) {
+
+    io.to(room.guest).emit("updateState", {
+
+      myHand: room.guestHand,
+
+      table: room.table,
+
+      capture: room.guestCapture,
+
+      turn: room.turn
+    });
+  }
+}
+
+
+// =========================
+// socket 연결
 // =========================
 io.on("connection", (socket) => {
 
@@ -93,6 +138,7 @@ io.on("connection", (socket) => {
     rooms[roomId] = {
 
       host: socket.id,
+
       guest: null,
 
       turn: socket.id,
@@ -104,6 +150,7 @@ io.on("connection", (socket) => {
       table: deck.splice(0, 8),
 
       hostCapture: [],
+
       guestCapture: []
     };
 
@@ -150,7 +197,7 @@ io.on("connection", (socket) => {
 
     console.log("게임 시작:", roomId);
 
-    // 🔥 모바일 join 안정화
+    // 모바일 안정화
     setTimeout(() => {
 
       io.to(roomId).emit("startGame");
@@ -164,13 +211,13 @@ io.on("connection", (socket) => {
   // =========================
   // 카드 플레이
   // =========================
-  socket.on("playCard", ({ roomId, index }) => {
+  socket.on("playCard", ({ roomId, cardId }) => {
 
     const room = rooms[roomId];
 
     if (!room) return;
 
-    // 자기 턴만 가능
+    // 턴 체크
     if (room.turn !== socket.id) {
 
       socket.emit(
@@ -194,9 +241,20 @@ io.on("connection", (socket) => {
         ? room.hostCapture
         : room.guestCapture;
 
-    const card = hand[index];
+    // 🔥 카드 id로 찾기
+    const cardIndex =
+      hand.findIndex(
+        c => c.id === cardId
+      );
 
-    if (!card) return;
+    if (cardIndex < 0) {
+
+      console.log("카드 못찾음");
+
+      return;
+    }
+
+    const card = hand[cardIndex];
 
     // 같은 month 찾기
     const sameIndex =
@@ -204,9 +262,9 @@ io.on("connection", (socket) => {
         c => c.month === card.month
       );
 
+    // 먹기
     if (sameIndex >= 0) {
 
-      // 먹기
       capture.push(card);
 
       capture.push(
@@ -215,14 +273,18 @@ io.on("connection", (socket) => {
 
       room.table.splice(sameIndex, 1);
 
+      console.log("먹음:", card.file);
+
     } else {
 
-      // 바닥에 내려놓기
+      // 바닥에 놓기
       room.table.push(card);
+
+      console.log("바닥에 놓음:", card.file);
     }
 
     // 손패 제거
-    hand.splice(index, 1);
+    hand.splice(cardIndex, 1);
 
     // 턴 변경
     room.turn =
@@ -261,50 +323,14 @@ io.on("connection", (socket) => {
 
 
 // =========================
-// 상태 전송
-// =========================
-function sendState(roomId) {
-
-  const room = rooms[roomId];
-
-  if (!room) return;
-
-  // host
-  io.to(room.host).emit("updateState", {
-
-    myHand: room.hostHand,
-
-    table: room.table,
-
-    capture: room.hostCapture,
-
-    turn: room.turn
-  });
-
-  // guest
-  if (room.guest) {
-
-    io.to(room.guest).emit("updateState", {
-
-      myHand: room.guestHand,
-
-      table: room.table,
-
-      capture: room.guestCapture,
-
-      turn: room.turn
-    });
-  }
-}
-
-
-// =========================
-// 서버 시작
+// 서버 실행
 // =========================
 const PORT =
   process.env.PORT || 3000;
 
 server.listen(PORT, () => {
 
-  console.log(`포트 ${PORT} 실행중`);
+  console.log(
+    `포트 ${PORT} 실행중`
+  );
 });
