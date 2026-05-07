@@ -3,15 +3,10 @@ const socket = io("https://gostop-server.onrender.com");
 let state = null;
 let myId = null;
 
-// =========================
-// 연결
-// =========================
 socket.on("connect", () => {
   myId = socket.id;
 });
 
-// =========================
-// 방 참가
 // =========================
 function joinRoom() {
   const roomId = Number(document.getElementById("roomInput").value);
@@ -22,8 +17,6 @@ function joinRoom() {
 }
 
 // =========================
-// 서버 상태 수신
-// =========================
 socket.on("stateUpdate", (s) => {
   state = s;
 
@@ -33,11 +26,11 @@ socket.on("stateUpdate", (s) => {
 });
 
 // =========================
-// 플레이어 표시
-// =========================
 function renderPlayers() {
   const el = document.getElementById("players");
   el.innerHTML = "";
+
+  if (!state?.players) return;
 
   state.players.forEach(p => {
     const li = document.createElement("li");
@@ -47,11 +40,11 @@ function renderPlayers() {
 }
 
 // =========================
-// 테이블 카드
-// =========================
 function renderTable() {
   const el = document.getElementById("table");
   el.innerHTML = "";
+
+  if (!state?.table) return;
 
   state.table.forEach(card => {
     const img = document.createElement("img");
@@ -63,15 +56,13 @@ function renderTable() {
 }
 
 // =========================
-// 내 패
-// =========================
 function renderHand() {
   const el = document.getElementById("hand");
   el.innerHTML = "";
 
-  const hand = state.hands?.[myId] || [];
+  if (!state?.hands || !state.hands[myId]) return;
 
-  hand.forEach(card => {
+  state.hands[myId].forEach(card => {
     const img = document.createElement("img");
     img.src = "cards/" + card;
     img.style.width = "60px";
