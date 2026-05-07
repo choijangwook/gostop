@@ -15,19 +15,17 @@
 <body>
 
   <!-- =========================
-       ROOM UI
+       ROOM AREA
   ========================== -->
-  <div id="roomArea">
-    <h2>GoStop Room</h2>
+  <h2>GoStop Room</h2>
 
-    <button onclick="createRoom()">방 만들기</button>
+  <button onclick="createRoom()">방 만들기</button>
 
-    <input id="inputRoom" placeholder="방 번호 입력">
-    <button onclick="joinRoom()">참가</button>
+  <input id="inputRoom" placeholder="방 번호 입력">
+  <button onclick="joinRoom()">참가</button>
 
-    <div>
-      Room ID: <span id="roomId"></span>
-    </div>
+  <div>
+    Room ID: <span id="roomId"></span>
   </div>
 
   <hr>
@@ -35,15 +33,11 @@
   <!-- =========================
        GAME AREA
   ========================== -->
-  <div id="gameArea">
+  <h3>Table</h3>
+  <div id="table"></div>
 
-    <h3>Table</h3>
-    <div id="table"></div>
-
-    <h3>My Hand</h3>
-    <div id="hand"></div>
-
-  </div>
+  <h3>My Hand</h3>
+  <div id="hand"></div>
 
   <hr>
 
@@ -53,7 +47,7 @@
   <button id="shareBtn">Share</button>
 
   <div id="shareModal" style="display:none;">
-    <div class="modal-content">
+    <div>
       <button id="closeModal">Close</button>
       <p>Share this room!</p>
     </div>
@@ -63,13 +57,13 @@
        SCRIPTS (중요 순서)
   ========================== -->
 
-  <!-- socket.io (서버가 제공하는 스크립트) -->
-  <script src="/socket.io/socket.io.js"></script>
+  <!-- 🔥 Render 서버 socket -->
+  <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
 
-  <!-- game client logic -->
+  <!-- 게임 로직 -->
   <script src="app.js"></script>
 
-  <!-- modal logic -->
+  <!-- 모달 -->
   <script src="share-modal.js"></script>
 
 </body>
