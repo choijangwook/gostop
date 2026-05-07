@@ -3,12 +3,16 @@ const socket = io("https://gostop-server.onrender.com");
 let state = null;
 let myId = null;
 
-// =====================
+// =========================
+// 연결
+// =========================
 socket.on("connect", () => {
   myId = socket.id;
 });
 
-// =====================
+// =========================
+// 방 참가
+// =========================
 function joinRoom() {
   const roomId = Number(document.getElementById("roomInput").value);
 
@@ -17,50 +21,61 @@ function joinRoom() {
   document.getElementById("roomId").innerText = roomId;
 }
 
-// =====================
+// =========================
+// 서버 상태 수신
+// =========================
 socket.on("stateUpdate", (s) => {
   state = s;
 
   renderPlayers();
   renderTable();
+  renderHand();
 });
 
-// =====================
-// 플레이어
-// =====================
+// =========================
+// 플레이어 표시
+// =========================
 function renderPlayers() {
   const el = document.getElementById("players");
   el.innerHTML = "";
 
   state.players.forEach(p => {
     const li = document.createElement("li");
-    li.innerText = p === myId ? p + " (me)" : p;
+    li.innerText = (p === myId) ? p + " (me)" : p;
     el.appendChild(li);
   });
 }
 
-// =====================
-// 🔥 화투 카드 표시 (핵심)
-// =====================
+// =========================
+// 테이블 카드
+// =========================
 function renderTable() {
-  const table = document.getElementById("table");
-  table.innerHTML = "";
+  const el = document.getElementById("table");
+  el.innerHTML = "";
 
-  // 테스트용 카드 (서버 없어도 보이게)
-  const cards = [
-    "11_bright.png",
-    "11_junk1.png",
-    "12_animal.png",
-    "12_ribbon.png"
-  ];
+  state.table.forEach(card => {
+    const img = document.createElement("img");
+    img.src = "cards/" + card;
+    img.style.width = "60px";
+    img.style.margin = "5px";
+    el.appendChild(img);
+  });
+}
 
-  cards.forEach(img => {
-    const c = document.createElement("img");
+// =========================
+// 내 패
+// =========================
+function renderHand() {
+  const el = document.getElementById("hand");
+  el.innerHTML = "";
 
-    c.src = "cards/" + img;
-    c.style.width = "60px";
-    c.style.margin = "5px";
+  const hand = state.hands?.[myId] || [];
 
-    table.appendChild(c);
+  hand.forEach(card => {
+    const img = document.createElement("img");
+    img.src = "cards/" + card;
+    img.style.width = "60px";
+    img.style.margin = "5px";
+    el.appendChild(img);
   });
 }
