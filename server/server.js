@@ -14,7 +14,7 @@ app.use(express.static("docs"));
 const rooms = {};
 
 // =========================
-// 카드 덱 생성
+// 카드 생성
 // =========================
 function createDeck() {
   const deck = [];
@@ -30,17 +30,17 @@ function createDeck() {
 }
 
 // =========================
-// socket
+// SOCKET
 // =========================
 io.on("connection", (socket) => {
 
   console.log("connect:", socket.id);
 
+  // =========================
   socket.on("joinRoom", ({ roomId }) => {
 
     roomId = Number(roomId);
 
-    // 방 없으면 생성
     if (!rooms[roomId]) {
       const deck = createDeck();
 
@@ -56,25 +56,50 @@ io.on("connection", (socket) => {
 
     socket.join(roomId);
 
-    // 플레이어 추가
+    // 🔥 중복 방지 (핵심)
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
     }
 
-    // 🔥 카드 분배 (처음 들어온 사람만)
+    // 🔥 손패 없으면만 지급
     if (!room.hands[socket.id]) {
       room.hands[socket.id] = room.deck.splice(0, 5);
     }
 
-    io.to(roomId).emit("stateUpdate", {
-      roomId,
-      players: room.players,
-      table: room.table,
-      hands: room.hands
-    });
+    emitState(roomId);
+  });
+
+  // =========================
+  socket.on("disconnect", () => {
+
+    for (const roomId in rooms) {
+
+      const room = rooms[roomId];
+
+      room.players = room.players.filter(p => p !== socket.id);
+
+      delete room.hands[socket.id];
+
+      emitState(roomId);
+    }
   });
 
 });
+
+// =========================
+// 상태 전송
+// =========================
+function emitState(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
+
+  io.to(roomId).emit("stateUpdate", {
+    roomId,
+    players: room.players,
+    table: room.table,
+    hands: room.hands
+  });
+}
 
 server.listen(10000, () => {
   console.log("server running");
