@@ -3,61 +3,64 @@ const socket = io("https://gostop-server.onrender.com");
 let state = null;
 let myId = null;
 
-// =========================
-// 연결
-// =========================
+// =====================
 socket.on("connect", () => {
   myId = socket.id;
-  console.log("connected:", myId);
 });
 
-// =========================
-// 방 참가
-// =========================
+// =====================
 function joinRoom() {
-  const roomId = document.getElementById("roomInput").value;
+  const roomId = Number(document.getElementById("roomInput").value);
 
-  if (!roomId) return;
+  socket.emit("joinRoom", { roomId });
 
-  const numRoom = Number(roomId);
-
-  if (numRoom < 100 || numRoom > 999) {
-    alert("3자리 숫자 (100~999)");
-    return;
-  }
-
-  socket.emit("joinRoom", { roomId: numRoom });
-
-  document.getElementById("roomId").innerText = numRoom;
+  document.getElementById("roomId").innerText = roomId;
 }
 
-// =========================
-// 서버 상태 수신
-// =========================
-socket.on("stateUpdate", (serverState) => {
-  state = serverState;
-
-  console.log("room state:", state);
+// =====================
+socket.on("stateUpdate", (s) => {
+  state = s;
 
   renderPlayers();
+  renderTable();
 });
 
-// =========================
-// 플레이어 렌더링 (핵심)
-// =========================
+// =====================
+// 플레이어
+// =====================
 function renderPlayers() {
-  const list = document.getElementById("players");
-  list.innerHTML = "";
+  const el = document.getElementById("players");
+  el.innerHTML = "";
 
-  if (!state || !state.players) return;
-
-  state.players.forEach(id => {
+  state.players.forEach(p => {
     const li = document.createElement("li");
+    li.innerText = p === myId ? p + " (me)" : p;
+    el.appendChild(li);
+  });
+}
 
-    li.innerText = (id === myId)
-      ? id + " (me)"
-      : id;
+// =====================
+// 🔥 화투 카드 표시 (핵심)
+// =====================
+function renderTable() {
+  const table = document.getElementById("table");
+  table.innerHTML = "";
 
-    list.appendChild(li);
+  // 테스트용 카드 (서버 없어도 보이게)
+  const cards = [
+    "11_bright.png",
+    "11_junk1.png",
+    "12_animal.png",
+    "12_ribbon.png"
+  ];
+
+  cards.forEach(img => {
+    const c = document.createElement("img");
+
+    c.src = "cards/" + img;
+    c.style.width = "60px";
+    c.style.margin = "5px";
+
+    table.appendChild(c);
   });
 }
