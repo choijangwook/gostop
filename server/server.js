@@ -11,7 +11,7 @@ const io = socketIo(server, {
     origin: "*",   // 또는 "https://choijangwook.github.io"
     methods: ["GET", "POST"]
   }
-});
+}); 
 
 app.use(express.static("docs"));
 
