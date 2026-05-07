@@ -3,6 +3,7 @@ const socket = io("https://gostop-server.onrender.com");
 let state = null;
 let myId = null;
 
+// =========================
 socket.on("connect", () => {
   myId = socket.id;
 });
@@ -40,6 +41,8 @@ function renderPlayers() {
 }
 
 // =========================
+// 🔥 테이블 (클릭해서 먹기)
+// =========================
 function renderTable() {
   const el = document.getElementById("table");
   el.innerHTML = "";
@@ -48,25 +51,39 @@ function renderTable() {
 
   state.table.forEach(card => {
     const img = document.createElement("img");
+
     img.src = "cards/" + card;
     img.style.width = "60px";
     img.style.margin = "5px";
+
+    // 🔥 먹기 이벤트
+    img.onclick = () => {
+      socket.emit("takeCard", {
+        roomId: state.roomId,
+        card: card
+      });
+    };
+
     el.appendChild(img);
   });
 }
 
 // =========================
+// 내 손패
+// =========================
 function renderHand() {
   const el = document.getElementById("hand");
   el.innerHTML = "";
 
-  if (!state?.hands || !state.hands[myId]) return;
+  const hand = state?.hands?.[myId] || [];
 
-  state.hands[myId].forEach(card => {
+  hand.forEach(card => {
     const img = document.createElement("img");
+
     img.src = "cards/" + card;
     img.style.width = "60px";
     img.style.margin = "5px";
+
     el.appendChild(img);
   });
 }
