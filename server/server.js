@@ -14,8 +14,6 @@ app.use(express.static("docs"));
 const rooms = {};
 
 // =========================
-// 덱 생성
-// =========================
 function createDeck() {
   const deck = [];
 
@@ -29,9 +27,6 @@ function createDeck() {
   return deck.sort(() => Math.random() - 0.5);
 }
 
-// =========================
-// 특수카드
-// =========================
 function createSpecial() {
   return [
     "special1_draw.png",
@@ -41,7 +36,14 @@ function createSpecial() {
 }
 
 // =========================
-// 점수 엔진
+// 🧠 인원별 카드 수
+// =========================
+function getHandSize(playerCount) {
+  if (playerCount === 2) return 10;
+  if (playerCount === 3) return 7;
+  return 5; // 4인 기본
+}
+
 // =========================
 function calculateScore(cards) {
 
@@ -77,8 +79,6 @@ function calculateScore(cards) {
 }
 
 // =========================
-// 상태 전송
-// =========================
 function emitState(roomId) {
 
   const room = rooms[roomId];
@@ -100,14 +100,8 @@ function emitState(roomId) {
 }
 
 // =========================
-// socket
-// =========================
 io.on("connection", (socket) => {
 
-  console.log("connect:", socket.id);
-
-  // =========================
-  // 방 참가
   // =========================
   socket.on("joinRoom", ({ roomId }) => {
 
@@ -119,12 +113,12 @@ io.on("connection", (socket) => {
 
       rooms[roomId] = {
         players: [],
-        table: deck.splice(0, 6),
+        table: [],
         deck,
         specialDeck: createSpecial(),
         hands: {},
         captured: {},
-        selectedHand: {} // 🔥 선택 카드 저장
+        selectedHand: {}
       };
     }
 
@@ -136,8 +130,13 @@ io.on("connection", (socket) => {
       room.players.push(socket.id);
     }
 
+    // =========================
+    // 🧠 인원수 기반 패 분배
+    // =========================
+    const handSize = getHandSize(room.players.length);
+
     if (!room.hands[socket.id]) {
-      room.hands[socket.id] = room.deck.splice(0, 5);
+      room.hands[socket.id] = room.deck.splice(0, handSize);
     }
 
     if (!room.captured[socket.id]) {
@@ -145,6 +144,14 @@ io.on("connection", (socket) => {
     }
 
     room.selectedHand[socket.id] = null;
+
+    // =========================
+    // 테이블 자동 세팅 (인원 기반)
+    // =========================
+    const tableSize = 6;
+    if (room.table.length === 0) {
+      room.table = room.deck.splice(0, tableSize);
+    }
 
     emitState(roomId);
   });
@@ -169,7 +176,7 @@ io.on("connection", (socket) => {
     if (!room) return;
 
     const handCard = room.selectedHand[socket.id];
-    if (!handCard) return;
+    if (!handCard) return; // 🔥 핵심: 선택 없으면 무시
 
     const tableIndex = room.table.indexOf(tableCard);
     if (tableIndex === -1) return;
@@ -191,8 +198,6 @@ io.on("connection", (socket) => {
   });
 
   // =========================
-  // 특수카드
-  // =========================
   socket.on("useSpecial", ({ roomId }) => {
 
     const room = rooms[roomId];
@@ -206,25 +211,6 @@ io.on("connection", (socket) => {
     room.captured[socket.id].push("DOUBLE_PI");
 
     emitState(roomId);
-  });
-
-  // =========================
-  // disconnect
-  // =========================
-  socket.on("disconnect", () => {
-
-    for (const roomId in rooms) {
-
-      const room = rooms[roomId];
-
-      room.players = room.players.filter(p => p !== socket.id);
-
-      delete room.hands[socket.id];
-      delete room.captured[socket.id];
-      delete room.selectedHand[socket.id];
-
-      emitState(roomId);
-    }
   });
 
 });
