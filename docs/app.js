@@ -7,6 +7,9 @@ socket.on("connect", () => {
   myId = socket.id;
 });
 
+let selectedHand = null;
+
+// =========================
 function joinRoom() {
   const roomId = Number(document.getElementById("roomInput").value);
   socket.emit("joinRoom", { roomId });
@@ -74,6 +77,8 @@ function renderHand() {
     img.style.margin = "5px";
 
     img.onclick = () => {
+      selectedHand = card;
+
       socket.emit("selectHand", {
         roomId: state.roomId,
         card
@@ -84,7 +89,7 @@ function renderHand() {
   });
 
   const btn = document.createElement("button");
-  btn.innerText = "특수카드 사용";
+  btn.innerText = "특수카드";
 
   btn.onclick = () => {
     socket.emit("useSpecial", {
