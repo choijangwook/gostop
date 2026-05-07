@@ -56,7 +56,7 @@ body {
 
   height: 100%;
 
-  gap: 10px;
+  gap: 12px;
 }
 
 #roomInput {
@@ -76,22 +76,17 @@ body {
 
 button {
 
-  padding: 10px 18px;
+  width: 220px;
 
-  font-size: 17px;
+  padding: 12px;
+
+  font-size: 18px;
 
   border: none;
 
   border-radius: 8px;
 
   cursor: pointer;
-}
-
-.modeButtons {
-
-  display: flex;
-
-  gap: 8px;
 }
 
 /* ========================= */
@@ -219,25 +214,22 @@ img {
 
     font-size: 10px;
   }
+
+  button {
+
+    width: 190px;
+
+    font-size: 16px;
+  }
 }
 
 /* ========================= */
-/* 2인용 전용 */
+/* 2인용 */
 /* ========================= */
 
 .twoPlayer #enemy2Section {
 
   display: none;
-}
-
-.twoPlayer #enemy1Title::after {
-
-  content: "";
-}
-
-.twoPlayer #game {
-
-  justify-content: space-evenly;
 }
 
 </style>
@@ -249,35 +241,31 @@ img {
 <div id="wrap">
 
   <!-- ========================= -->
-  <!-- 입장 -->
+  <!-- 로비 -->
   <!-- ========================= -->
 
   <div id="lobby">
 
-    <input
-      id="roomInput"
-      maxlength="3"
-      placeholder="방번호 123"
-    >
-
-    <button onclick="joinRoom()">
-      참가
+    <button onclick="createRoom(2)">
+      2인용 방 만들기
     </button>
 
-    <div class="modeButtons">
-
-      <button onclick="setMode(2)">
-        2인용
-      </button>
-
-      <button onclick="setMode(3)">
-        3인용
-      </button>
-
-    </div>
+    <button onclick="createRoom(3)">
+      3인용 방 만들기
+    </button>
 
     <button onclick="playWithBot()">
       컴퓨터 대결
+    </button>
+
+    <input
+      id="roomInput"
+      maxlength="3"
+      placeholder="방번호 입력"
+    >
+
+    <button onclick="joinRoom()">
+      방 참가
     </button>
 
   </div>
@@ -304,9 +292,7 @@ img {
 
     </div>
 
-    <!-- ========================= -->
-    <!-- 1번 상대 -->
-    <!-- ========================= -->
+    <!-- 상대1 -->
 
     <div
       class="section"
@@ -317,7 +303,7 @@ img {
         class="sectionTitle"
         id="enemy1Title"
       >
-        1번 상대 먹은패
+        상대방이 먹은패
       </div>
 
       <div id="enemy1Bright" class="cardRow"></div>
@@ -327,9 +313,7 @@ img {
 
     </div>
 
-    <!-- ========================= -->
-    <!-- 2번 상대 -->
-    <!-- ========================= -->
+    <!-- 상대2 -->
 
     <div
       class="section"
@@ -347,9 +331,7 @@ img {
 
     </div>
 
-    <!-- ========================= -->
     <!-- 바닥패 -->
-    <!-- ========================= -->
 
     <div class="section">
 
@@ -361,9 +343,7 @@ img {
 
     </div>
 
-    <!-- ========================= -->
-    <!-- 내 패 -->
-    <!-- ========================= -->
+    <!-- 내패 -->
 
     <div class="section">
 
@@ -375,9 +355,7 @@ img {
 
     </div>
 
-    <!-- ========================= -->
-    <!-- 내 먹은패 -->
-    <!-- ========================= -->
+    <!-- 먹은패 -->
 
     <div class="section">
 
@@ -400,12 +378,28 @@ img {
 
 let playerMode = 2;
 
-function setMode(mode) {
+// =========================
+// 방 만들기
+// =========================
+
+function createRoom(mode) {
 
   playerMode = mode;
 
-  alert(mode + "인용 선택");
+  const roomId =
+    Math.floor(
+      100 + Math.random() * 900
+    );
+
+  document.getElementById("roomInput")
+    .value = roomId;
+
+  joinRoom(true);
 }
+
+// =========================
+// UI 적용
+// =========================
 
 function applyModeUI() {
 
