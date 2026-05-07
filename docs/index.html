@@ -5,88 +5,74 @@
 
 <meta charset="UTF-8">
 
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, user-scalable=no"
->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <title>고스톱</title>
 
 <style>
 
 body {
-
   margin: 0;
-
   overflow: hidden;
-
   background: #2f4f2f;
-
   color: white;
-
   font-family: sans-serif;
 }
 
 #wrap {
-
   width: 100vw;
-
   height: 100vh;
-
   box-sizing: border-box;
-
-  padding: 2px;
+  padding: 6px;
 }
 
 /* ========================= */
-/* 입장 */
+/* 로비 */
 /* ========================= */
 
 #lobby {
 
   display: flex;
-
   flex-direction: column;
-
   justify-content: center;
-
   align-items: center;
 
   width: 100%;
-
   height: 100%;
 
-  gap: 12px;
-}
-
-#roomInput {
-
-  width: 170px;
-
-  padding: 12px;
-
-  font-size: 22px;
-
-  text-align: center;
-
-  border-radius: 8px;
-
-  border: none;
+  gap: 10px;
 }
 
 button {
 
-  width: 220px;
-
+  width: 240px;
   padding: 12px;
-
   font-size: 18px;
 
   border: none;
-
-  border-radius: 8px;
+  border-radius: 10px;
 
   cursor: pointer;
+
+  transition: 0.2s;
+}
+
+button.active {
+
+  background: #2ecc71;
+  color: black;
+  font-weight: bold;
+}
+
+#roomInput {
+
+  width: 200px;
+  padding: 12px;
+  font-size: 22px;
+  text-align: center;
+
+  border-radius: 8px;
+  border: none;
 }
 
 /* ========================= */
@@ -98,138 +84,43 @@ button {
   display: none;
 
   width: 100%;
-
   height: 100vh;
 
   box-sizing: border-box;
-
-  padding: 2px;
-
-  overflow: hidden;
 }
 
-#topInfo {
-
-  display: flex;
-
-  justify-content: space-between;
-
-  align-items: center;
-
-  margin-bottom: 3px;
-}
-
-#topInfo h3 {
-
-  margin: 0;
-
-  font-size: 13px;
-}
-
-/* ========================= */
-/* 섹션 */
 /* ========================= */
 
 .section {
 
   border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
 
-  border-radius: 6px;
-
-  padding: 2px;
-
+  padding: 4px;
   margin-bottom: 6px;
 }
 
-.sectionTitle {
-
-  margin: 0 0 1px 0;
+.title {
 
   font-size: 12px;
-
-  font-weight: bold;
+  margin-bottom: 2px;
 }
 
-/* ========================= */
-/* 카드줄 */
-/* ========================= */
-
-.cardRow {
+.row {
 
   display: flex;
-
+  gap: 2px;
   flex-wrap: nowrap;
-
-  gap: 1px;
-
-  overflow: hidden;
-
-  min-height: 32px;
-
-  margin-bottom: 1px;
+  overflow-x: auto;
 }
-
-/* ========================= */
-/* 카드 */
-/* ========================= */
 
 img {
-
-  width: 50px;
-
-  user-select: none;
-
-  -webkit-user-drag: none;
-
-  touch-action: manipulation;
+  width: 44px;
 }
 
-.captureCard {
-
-  width: 26px;
-}
-
-/* ========================= */
 /* 모바일 */
-/* ========================= */
-
 @media (max-width: 700px) {
-
-  img {
-
-    width: 38px;
-  }
-
-  .captureCard {
-
-    width: 20px;
-  }
-
-  .sectionTitle {
-
-    font-size: 11px;
-  }
-
-  #topInfo h3 {
-
-    font-size: 10px;
-  }
-
-  button {
-
-    width: 190px;
-
-    font-size: 16px;
-  }
-}
-
-/* ========================= */
-/* 2인용 */
-/* ========================= */
-
-.twoPlayer #enemy2Section {
-
-  display: none;
+  img { width: 36px; }
 }
 
 </style>
@@ -240,201 +131,128 @@ img {
 
 <div id="wrap">
 
-  <!-- ========================= -->
-  <!-- 로비 -->
-  <!-- ========================= -->
+<!-- ========================= -->
+<!-- 로비 -->
+<!-- ========================= -->
 
-  <div id="lobby">
+<div id="lobby">
 
-    <button onclick="createRoom(2)">
-      2인용 방 만들기
-    </button>
+  <button id="btn2" onclick="selectMode(2)">
+    2인용 방 만들기
+  </button>
 
-    <button onclick="createRoom(3)">
-      3인용 방 만들기
-    </button>
+  <button id="btn3" onclick="selectMode(3)">
+    3인용 방 만들기
+  </button>
 
-    <button onclick="playWithBot()">
-      컴퓨터 대결
-    </button>
+  <button onclick="playWithBot()">
+    컴퓨터 대결
+  </button>
 
-    <input
-      id="roomInput"
-      maxlength="3"
-      placeholder="방번호 입력"
-    >
+  <input id="roomInput" placeholder="방번호 입력">
 
-    <button onclick="joinRoom()">
-      방 참가
-    </button>
-
-  </div>
-
-  <!-- ========================= -->
-  <!-- 게임 -->
-  <!-- ========================= -->
-
-  <div id="game">
-
-    <!-- 상단 -->
-
-    <div id="topInfo">
-
-      <h3 id="turn">
-        대기중...
-      </h3>
-
-      <h3 id="deck">
-        남은패 : 0
-      </h3>
-
-      <h3 id="winner"></h3>
-
-    </div>
-
-    <!-- 상대1 -->
-
-    <div
-      class="section"
-      id="enemy1Section"
-    >
-
-      <div
-        class="sectionTitle"
-        id="enemy1Title"
-      >
-        상대방이 먹은패
-      </div>
-
-      <div id="enemy1Bright" class="cardRow"></div>
-      <div id="enemy1Animal" class="cardRow"></div>
-      <div id="enemy1Ribbon" class="cardRow"></div>
-      <div id="enemy1Junk" class="cardRow"></div>
-
-    </div>
-
-    <!-- 상대2 -->
-
-    <div
-      class="section"
-      id="enemy2Section"
-    >
-
-      <div class="sectionTitle">
-        2번 상대 먹은패
-      </div>
-
-      <div id="enemy2Bright" class="cardRow"></div>
-      <div id="enemy2Animal" class="cardRow"></div>
-      <div id="enemy2Ribbon" class="cardRow"></div>
-      <div id="enemy2Junk" class="cardRow"></div>
-
-    </div>
-
-    <!-- 바닥패 -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        바닥패
-      </div>
-
-      <div id="table" class="cardRow"></div>
-
-    </div>
-
-    <!-- 내패 -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        내 패
-      </div>
-
-      <div id="hand" class="cardRow"></div>
-
-    </div>
-
-    <!-- 먹은패 -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        내가 먹은패
-      </div>
-
-      <div id="myBright" class="cardRow"></div>
-      <div id="myAnimal" class="cardRow"></div>
-      <div id="myRibbon" class="cardRow"></div>
-      <div id="myJunk" class="cardRow"></div>
-
-    </div>
-
-  </div>
+  <button onclick="joinRoom()">
+    방 참가
+  </button>
 
 </div>
 
+<!-- ========================= -->
+<!-- 게임 -->
+<!-- ========================= -->
+
+<div id="game">
+
+  <div id="info"></div>
+
+</div>
+
+</div>
+
+<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+
 <script>
 
-let playerMode = 2;
+let selectedMode = null;
+let readyRoomId = null;
 
-// =========================
-// 방 만들기
-// =========================
+/* =========================
+   모드 선택 (방 만들기 전 상태)
+========================= */
 
-function createRoom(mode) {
+function selectMode(mode) {
 
-  playerMode = mode;
+  selectedMode = mode;
 
-  const roomId =
-    Math.floor(
-      100 + Math.random() * 900
-    );
+  readyRoomId = Math.floor(100 + Math.random() * 900);
 
-  document.getElementById("roomInput")
-    .value = roomId;
+  document.getElementById("roomInput").value = readyRoomId;
 
-  joinRoom(true);
+  // 버튼 상태 UI 변경
+
+  document.getElementById("btn2").classList.remove("active");
+  document.getElementById("btn3").classList.remove("active");
+
+  if (mode === 2) {
+    document.getElementById("btn2").classList.add("active");
+    document.getElementById("btn2").innerText = "2인용 방 입장가능";
+    document.getElementById("btn3").innerText = "3인용 방 만들기";
+  }
+
+  if (mode === 3) {
+    document.getElementById("btn3").classList.add("active");
+    document.getElementById("btn3").innerText = "3인용 방 입장가능";
+    document.getElementById("btn2").innerText = "2인용 방 만들기";
+  }
 }
 
-// =========================
-// UI 적용
-// =========================
+/* =========================
+   방 참가 (실제 입장)
+========================= */
 
-function applyModeUI() {
+function joinRoom() {
 
-  // 2인용
+  const roomId =
+    Number(document.getElementById("roomInput").value);
 
-  if (playerMode === 2) {
+  if (!roomId) return;
 
-    document.body.classList
-      .add("twoPlayer");
+  socket.emit("joinRoom", {
 
-    document
-      .getElementById("enemy1Title")
-      .innerText =
-        "상대방이 먹은패";
-  }
+    roomId,
+    mode: selectedMode || 2
+  });
 
-  // 3인용
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game").style.display = "block";
+}
 
-  else {
+/* =========================
+   컴퓨터
+========================= */
 
-    document.body.classList
-      .remove("twoPlayer");
+function playWithBot() {
 
-    document
-      .getElementById("enemy1Title")
-      .innerText =
-        "1번 상대 먹은패";
-  }
+  selectedMode = 2;
+
+  const roomId =
+    Math.floor(100 + Math.random() * 900);
+
+  document.getElementById("roomInput").value = roomId;
+
+  socket.emit("joinRoom", {
+
+    roomId,
+    mode: 2,
+    bot: true
+  });
+
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game").style.display = "block";
 }
 
 </script>
-
-<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-
-<script src="app.js"></script>
 
 </body>
 
