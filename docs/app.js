@@ -1,16 +1,17 @@
-const socket = io("https://gostop-server.onrender.com");
+const socket = io(
+  "https://gostop-server.onrender.com"
+);
 
 console.log("app.js 정상 로드됨");
 
-let gameStarted = false;
+let currentRoom = "";
+let currentTurn = "";
 
 socket.on("connect", () => {
   console.log("서버 연결됨:", socket.id);
 });
 
 function createRoom() {
-
-  console.log("방 만들기 클릭");
 
   socket.emit("createRoom");
 }
@@ -19,8 +20,6 @@ function joinRoom() {
 
   const roomId =
     document.getElementById("roomInput").value;
-
-  console.log("참가 시도:", roomId);
 
   if (!roomId) {
     alert("방 코드를 입력하세요");
@@ -32,7 +31,7 @@ function joinRoom() {
 
 socket.on("roomCreated", (roomId) => {
 
-  console.log("방 생성 완료:", roomId);
+  currentRoom = roomId;
 
   document.getElementById("roomInput").value =
     roomId;
@@ -44,13 +43,18 @@ socket.on("errorMessage", (msg) => {
   alert(msg);
 });
 
-socket.on("startGame", () => {
+socket.on("startGame", (data) => {
 
-  console.log("게임 시작");
-
-  gameStarted = true;
+  currentTurn = data.turn;
 
   renderGame();
+});
+
+socket.on("turnChanged", (data) => {
+
+  currentTurn = data.turn;
+
+  renderTurn();
 });
 
 function renderGame() {
@@ -59,34 +63,53 @@ function renderGame() {
     document.getElementById("game");
 
   game.innerHTML = `
-    <h2>🎴 게임 시작!</h2>
+    <h2 id="turnText"></h2>
 
-    <div class="table">
-      <p>바닥 패</p>
+    <div class="cards">
 
-      <div class="cards">
-        <img src="cards/1_bright.png">
-        <img src="cards/3_ribbon.png">
-        <img src="cards/8_animal.png">
-      </div>
-    </div>
+      <img src="cards/1_junk1.png"
+        onclick="playCard()">
 
-    <div class="hand">
-      <p>내 패</p>
+      <img src="cards/2_junk1.png"
+        onclick="playCard()">
 
-      <div class="cards">
+      <img src="cards/3_junk1.png"
+        onclick="playCard()">
 
-        <img src="cards/1_junk1.png">
-
-        <img src="cards/2_junk1.png">
-
-        <img src="cards/3_junk1.png">
-
-        <img src="cards/4_junk1.png">
-
-        <img src="cards/5_junk1.png">
-
-      </div>
     </div>
   `;
+
+  renderTurn();
+}
+
+function renderTurn() {
+
+  const text =
+    document.getElementById("turnText");
+
+  if (!text) return;
+
+  if (currentTurn === socket.id) {
+
+    text.innerHTML =
+      "🟢 내 턴";
+
+  } else {
+
+    text.innerHTML =
+      "⏳ 상대 턴";
+  }
+}
+
+function playCard() {
+
+  if (currentTurn !== socket.id) {
+
+    alert("상대 턴입니다.");
+    return;
+  }
+
+  socket.emit("playCard", {
+    roomId: currentRoom
+  });
 }
