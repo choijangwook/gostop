@@ -30,12 +30,29 @@ function createDeck() {
 }
 
 // =========================
-// SOCKET
+// 상태 전송
+// =========================
+function emitState(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
+
+  io.to(roomId).emit("stateUpdate", {
+    roomId,
+    players: room.players,
+    table: room.table,
+    hands: room.hands
+  });
+}
+
+// =========================
+// socket
 // =========================
 io.on("connection", (socket) => {
 
   console.log("connect:", socket.id);
 
+  // =========================
+  // 방 참가
   // =========================
   socket.on("joinRoom", ({ roomId }) => {
 
@@ -56,12 +73,10 @@ io.on("connection", (socket) => {
 
     socket.join(roomId);
 
-    // 🔥 중복 방지 (핵심)
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
     }
 
-    // 🔥 손패 없으면만 지급
     if (!room.hands[socket.id]) {
       room.hands[socket.id] = room.deck.splice(0, 5);
     }
@@ -69,6 +84,32 @@ io.on("connection", (socket) => {
     emitState(roomId);
   });
 
+  // =========================
+  // 🔥 카드 먹기 기능
+  // =========================
+  socket.on("takeCard", ({ roomId, card }) => {
+
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const hand = room.hands[socket.id];
+    if (!hand) return;
+
+    const index = room.table.indexOf(card);
+
+    if (index === -1) return;
+
+    // 테이블에서 제거
+    room.table.splice(index, 1);
+
+    // 내 손패로 이동
+    hand.push(card);
+
+    emitState(roomId);
+  });
+
+  // =========================
+  // disconnect
   // =========================
   socket.on("disconnect", () => {
 
@@ -85,21 +126,6 @@ io.on("connection", (socket) => {
   });
 
 });
-
-// =========================
-// 상태 전송
-// =========================
-function emitState(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  io.to(roomId).emit("stateUpdate", {
-    roomId,
-    players: room.players,
-    table: room.table,
-    hands: room.hands
-  });
-}
 
 server.listen(10000, () => {
   console.log("server running");
