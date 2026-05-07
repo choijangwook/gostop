@@ -45,6 +45,17 @@ socket.on("stateUpdate", (s) => {
   document.getElementById("turn")
     .innerText = turnText;
 
+  // 남은 카드
+  document.getElementById("deck")
+    .innerText = `Deck : ${state.deckCount}`;
+
+  // 게임 종료
+  if (state.gameOver) {
+
+    document.getElementById("turn")
+      .innerText = "🎉 게임 종료";
+  }
+
   renderTable();
   renderHand();
   renderCaptured();
@@ -93,7 +104,7 @@ function renderHand() {
 
     img.onclick = () => {
 
-      // 🔥 내 턴 아닐 때 차단
+      // 내 턴 아닐 때 차단
       if (state.turn !== myId) return;
 
       socket.emit("playCard", {
