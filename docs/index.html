@@ -126,7 +126,7 @@ body{
 
 .section{
 
-  margin-bottom:4px;
+  margin-bottom:3px;
 }
 
 .sectionTitle{
@@ -152,11 +152,11 @@ body{
 
   overflow:hidden;
 
-  min-height:58px;
+  width:100%;
 }
 
 /* =========================
-   먹은패 3줄
+   먹은패
 ========================= */
 
 .captureRow{
@@ -169,13 +169,13 @@ body{
 
   overflow:hidden;
 
-  min-height:38px;
+  width:100%;
 
   margin-bottom:1px;
 }
 
 /* =========================
-   카드
+   기본 카드 크기
 ========================= */
 
 img{
@@ -187,6 +187,32 @@ img{
   object-fit:contain;
 
   border-radius:4px;
+
+  flex-shrink:1;
+}
+
+/* =========================
+   먹은패 자동축소
+========================= */
+
+.captureRow img{
+
+  width:42px;
+}
+
+.captureRow img:nth-child(n+9){
+
+  width:36px;
+}
+
+.captureRow img:nth-child(n+13){
+
+  width:30px;
+}
+
+.captureRow img:nth-child(n+17){
+
+  width:26px;
 }
 
 /* =========================
@@ -224,25 +250,33 @@ img{
     padding:1px 4px;
   }
 
-  /* 핵심:
-     전부 한 화면에 보이도록
-  */
+  /* 전체 한 화면 */
 
   img{
 
-    width:13.5vw;
+    width:11.5vw;
 
-    max-width:56px;
+    max-width:52px;
   }
 
-  .cardRow{
+  .captureRow img{
 
-    min-height:14vw;
+    width:10vw;
   }
 
-  .captureRow{
+  .captureRow img:nth-child(n+9){
 
-    min-height:10vw;
+    width:8.7vw;
+  }
+
+  .captureRow img:nth-child(n+13){
+
+    width:7.5vw;
+  }
+
+  .captureRow img:nth-child(n+17){
+
+    width:6.4vw;
   }
 }
 
@@ -358,7 +392,7 @@ img{
 
   </div>
 
-  <!-- 내패 -->
+  <!-- 내 패 -->
 
   <div class="section">
 
@@ -373,7 +407,7 @@ img{
 
   </div>
 
-  <!-- 내 먹은패 -->
+  <!-- 내가 먹은패 -->
 
   <div class="section">
 
