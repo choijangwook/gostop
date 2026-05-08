@@ -55,14 +55,14 @@ body{
   justify-content:center;
   align-items:center;
 
-  gap:10px;
+  gap:8px;
 }
 
 #lobby input{
 
   width:120px;
 
-  padding:10px;
+  padding:9px;
 
   border:none;
   border-radius:8px;
@@ -74,16 +74,16 @@ body{
 
 #lobby button{
 
-  padding:10px 14px;
+  padding:8px 12px;
 
   border:none;
   border-radius:8px;
 
-  font-size:15px;
+  font-size:14px;
 }
 
 /* =========================
-   게임 전체
+   게임
 ========================= */
 
 #game{
@@ -95,12 +95,12 @@ body{
 
   overflow:hidden;
 
-  padding:2px;
+  padding:1px;
 
   display:flex;
   flex-direction:column;
 
-  justify-content:space-between;
+  justify-content:flex-start;
 }
 
 /* =========================
@@ -109,29 +109,31 @@ body{
 
 #topBar{
 
-  height:24px;
-
   display:flex;
 
-  align-items:center;
   justify-content:space-between;
+  align-items:center;
+
+  font-size:10px;
+
+  line-height:10px;
+
+  margin-bottom:1px;
 
   flex-shrink:0;
-
-  font-size:11px;
 }
 
 .topButtons{
 
   display:flex;
-  gap:4px;
+  gap:2px;
 }
 
 .smallBtn{
 
-  font-size:9px;
+  font-size:8px;
 
-  padding:2px 5px;
+  padding:1px 4px;
 
   border:none;
   border-radius:4px;
@@ -147,42 +149,41 @@ body{
 
   overflow:hidden;
 
+  margin-bottom:1px;
+
   flex-shrink:0;
 }
 
 .sectionTitle{
 
-  font-size:10px;
+  font-size:9px;
 
   font-weight:bold;
 
-  margin-bottom:1px;
+  line-height:9px;
 
-  line-height:10px;
+  margin:0;
+  padding:0;
+
+  margin-bottom:0;
+
+  opacity:0.92;
 }
 
 /* =========================
-   높이 비율
+   구분선
 ========================= */
 
-#enemyCapturedSection{
-  height:23vh;
-}
+.separator{
 
-#enemyHandSection{
-  height:11vh;
-}
+  width:100%;
 
-#tableSection{
-  height:13vh;
-}
+  height:1px;
 
-#myHandSection{
-  height:13vh;
-}
+  background:
+    rgba(255,255,255,0.18);
 
-#myCapturedSection{
-  height:23vh;
+  margin:1px 0;
 }
 
 /* =========================
@@ -200,7 +201,7 @@ body{
 
   overflow:hidden;
 
-  gap:1px;
+  gap:0;
 }
 
 /* =========================
@@ -211,51 +212,63 @@ body{
 
   width:11vw;
 
-  max-width:56px;
+  max-width:52px;
 
   height:auto;
 
   object-fit:contain;
 
-  border-radius:4px;
+  border-radius:3px;
 
   flex-shrink:1;
 }
 
 /* =========================
-   먹은패 카드
+   먹은패
 ========================= */
+
+.captureRow{
+
+  margin-top:-13px;
+}
+
+/* 첫 줄은 안 겹치게 */
+
+.captureRow:first-of-type{
+
+  margin-top:0;
+}
 
 .captureRow img{
 
-  width:9vw;
+  width:8.6vw;
 
-  max-width:46px;
+  max-width:42px;
 
   height:auto;
 
   object-fit:contain;
 
-  border-radius:4px;
+  border-radius:3px;
 
   flex-shrink:1;
 }
 
-/* 카드 많아질수록 자동축소 */
+/* 카드 많아질수록 자동 축소 */
 
 .captureRow img:nth-child(n+9){
 
-  width:7.8vw;
+  width:7.4vw;
 }
 
 .captureRow img:nth-child(n+13){
 
-  width:6.8vw;
+  width:6.3vw;
 }
 
 .captureRow img:nth-child(n+17){
 
-  width:5.8vw;
+  width:5.3vw;
 }
 
 /* =========================
@@ -273,27 +286,52 @@ body{
 
   .cardRow img{
 
-    width:56px;
+    width:54px;
   }
 
   .captureRow img{
 
-    width:46px;
+    width:42px;
+  }
+
+  .captureRow{
+
+    margin-top:-18px;
+  }
+
+  .captureRow:first-of-type{
+
+    margin-top:0;
   }
 
   .captureRow img:nth-child(n+9){
 
-    width:40px;
+    width:36px;
   }
 
   .captureRow img:nth-child(n+13){
 
-    width:34px;
+    width:31px;
   }
 
   .captureRow img:nth-child(n+17){
 
-    width:28px;
+    width:26px;
+  }
+
+  .sectionTitle{
+
+    font-size:10px;
+  }
+
+  #topBar{
+
+    font-size:11px;
+  }
+
+  .smallBtn{
+
+    font-size:9px;
   }
 }
 
@@ -364,28 +402,22 @@ body{
 
   <!-- 상대 먹은패 -->
 
-  <div
-    class="section"
-    id="enemyCapturedSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       상대 먹은패
     </div>
 
-    <!-- 1줄 -->
     <div
       class="captureRow"
       id="enemyBrightAnimal"
     ></div>
 
-    <!-- 2줄 -->
     <div
       class="captureRow"
       id="enemyRibbon"
     ></div>
 
-    <!-- 3줄 -->
     <div
       class="captureRow"
       id="enemyJunk"
@@ -393,12 +425,11 @@ body{
 
   </div>
 
+  <div class="separator"></div>
+
   <!-- 상대패 -->
 
-  <div
-    class="section"
-    id="enemyHandSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       상대패
@@ -411,12 +442,11 @@ body{
 
   </div>
 
+  <div class="separator"></div>
+
   <!-- 바닥패 -->
 
-  <div
-    class="section"
-    id="tableSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       바닥패
@@ -429,12 +459,11 @@ body{
 
   </div>
 
+  <div class="separator"></div>
+
   <!-- 내패 -->
 
-  <div
-    class="section"
-    id="myHandSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       내패
@@ -447,30 +476,26 @@ body{
 
   </div>
 
+  <div class="separator"></div>
+
   <!-- 내가 먹은패 -->
 
-  <div
-    class="section"
-    id="myCapturedSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       내가 먹은패
     </div>
 
-    <!-- 1줄 -->
     <div
       class="captureRow"
       id="myBrightAnimal"
     ></div>
 
-    <!-- 2줄 -->
     <div
       class="captureRow"
       id="myRibbon"
     ></div>
 
-    <!-- 3줄 -->
     <div
       class="captureRow"
       id="myJunk"
