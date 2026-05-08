@@ -10,6 +10,34 @@ let state = null;
 let myId = null;
 
 // =========================
+// 사운드
+// =========================
+
+const cardSound =
+  new Audio("cards/sounds/card.mp3");
+
+const captureSound =
+  new Audio("cards/sounds/capture.mp3");
+
+const turnSound =
+  new Audio("cards/sounds/turn.mp3");
+
+const winSound =
+  new Audio("cards/sounds/win.mp3");
+
+const loseSound =
+  new Audio("cards/sounds/lose.mp3");
+
+const buttonSound =
+  new Audio("cards/sounds/button.mp3");
+
+const bgm =
+  new Audio("cards/sounds/bgm.mp3");
+
+bgm.loop = true;
+bgm.volume = 0.3;
+
+// =========================
 // 연결
 // =========================
 
@@ -21,10 +49,14 @@ socket.on("connect", () => {
 });
 
 // =========================
-// 방 참가
+// 참가
 // =========================
 
 function joinRoom() {
+
+  buttonSound.play();
+
+  bgm.play();
 
   const roomId =
     Number(
@@ -50,6 +82,10 @@ function joinRoom() {
 
 function playWithBot() {
 
+  buttonSound.play();
+
+  bgm.play();
+
   const roomId =
     Math.floor(100 + Math.random() * 900);
 
@@ -69,12 +105,26 @@ function playWithBot() {
 }
 
 // =========================
+// 나가기
+// =========================
+
+function leaveGame() {
+
+  location.reload();
+}
+
+// =========================
 // 상태 업데이트
 // =========================
 
 socket.on("stateUpdate", (s) => {
 
+  const prevTurn =
+    state?.turn;
+
   state = s;
+
+  renderEnemyHand();
 
   renderTable();
 
@@ -82,34 +132,101 @@ socket.on("stateUpdate", (s) => {
 
   renderCaptured();
 
-  // 턴 표시
-  const turnText =
-    document.getElementById("turn");
-
-  turnText.innerText =
-    state.turn === myId
-      ? "🟢 내 턴"
-      : "⏳ 상대 턴";
+  // 턴
+  document.getElementById("turn")
+    .innerText =
+      state.turn === myId
+        ? "🟢 내 턴"
+        : "⏳ 상대 턴";
 
   // 남은패
   document.getElementById("deck")
     .innerText =
       "남은패 : " + state.deckCount;
 
+  // 턴 사운드
+  if (
+    prevTurn !== state.turn &&
+    state.turn === myId
+  ) {
+
+    turnSound.currentTime = 0;
+
+    turnSound.play();
+  }
+
+  // 먹기 사운드
+  if (state.lastCapture) {
+
+    captureSound.currentTime = 0;
+
+    captureSound.play();
+  }
+
   // 승패
   if (state.winner) {
 
-    document.getElementById("winner")
-      .innerText =
-        state.winner === "draw"
-          ? "무승부"
-          : (
-              state.winner === myId
-                ? "승리!"
-                : "패배"
-            );
+    if (state.winner === myId) {
+
+      winSound.play();
+
+      document.getElementById("winner")
+        .innerText = "승리!";
+
+    } else if (
+      state.winner !== "draw"
+    ) {
+
+      loseSound.play();
+
+      document.getElementById("winner")
+        .innerText = "패배";
+
+    } else {
+
+      document.getElementById("winner")
+        .innerText = "무승부";
+    }
   }
 });
+
+// =========================
+// 상대 패
+// =========================
+
+function renderEnemyHand() {
+
+  const enemyHand =
+    document.getElementById("enemyHand");
+
+  if (!enemyHand) return;
+
+  enemyHand.innerHTML = "";
+
+  const players =
+    state.players || [];
+
+  const enemy =
+    players.find(
+      p => p !== myId
+    );
+
+  if (!enemy) return;
+
+  const enemyCards =
+    state.hands?.[enemy] || [];
+
+  enemyCards.forEach(() => {
+
+    const img =
+      document.createElement("img");
+
+    img.src =
+      "cards/back.png";
+
+    enemyHand.appendChild(img);
+  });
+}
 
 // =========================
 // 바닥패
@@ -160,7 +277,7 @@ function renderHand() {
     img.src =
       "cards/" + card;
 
-    // 내 턴 아닐때 어둡게
+    // 상대턴이면 어둡게
     if (state.turn !== myId) {
 
       img.style.opacity = "0.45";
@@ -170,6 +287,10 @@ function renderHand() {
 
       if (state.turn !== myId)
         return;
+
+      cardSound.currentTime = 0;
+
+      cardSound.play();
 
       socket.emit("playCard", {
         roomId: state.roomId,
