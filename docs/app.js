@@ -48,7 +48,7 @@ socket.on("connect", () => {
 });
 
 // =========================
-// 방 참가
+// 참가
 // =========================
 
 function joinRoom() {
@@ -113,15 +113,14 @@ function leaveGame() {
 }
 
 // =========================
-// 상태 수신
+// 상태 업데이트
 // =========================
 
 socket.on("stateUpdate", (s) => {
 
   state = s;
 
-  console.log("현재턴:", state.turn);
-  console.log("내아이디:", myId);
+  console.log("현재 state:", state);
 
   renderEnemyHand();
   renderTable();
@@ -130,7 +129,7 @@ socket.on("stateUpdate", (s) => {
 
   // 턴 표시
   const isMyTurn =
-    String(state.turn) === String(myId);
+    state.turn === myId;
 
   document.getElementById("turn")
     .innerText =
@@ -142,7 +141,7 @@ socket.on("stateUpdate", (s) => {
   document.getElementById("deck")
     .innerText =
       "남은패 : " +
-      (state.deckCount || 0);
+      (state.deck?.length || 0);
 
   // 턴 효과음
   if (isMyTurn) {
@@ -205,7 +204,7 @@ function renderEnemyHand() {
 
   const enemy =
     players.find(
-      p => String(p) !== String(myId)
+      p => p !== myId
     );
 
   if (!enemy) return;
@@ -218,7 +217,6 @@ function renderEnemyHand() {
     const img =
       document.createElement("img");
 
-    // back.png 대신 0-back.png
     img.src =
       "cards/0-back.png";
 
@@ -271,29 +269,29 @@ function renderHand() {
     state.hands?.[myId] || [];
 
   const isMyTurn =
-    String(state.turn) === String(myId);
+    state.turn === myId;
 
   myHand.forEach(card => {
 
     const img =
       document.createElement("img");
 
+    // 이미지 깨짐 방지
     img.src =
-      "cards/" + card;
+      "cards/" +
+      encodeURIComponent(card);
 
-    // 상대 턴이면 어둡게
+    // 상대턴일때만 살짝 어둡게
     if (!isMyTurn) {
 
-      img.style.opacity = "0.45";
+      img.style.filter =
+        "brightness(65%)";
     }
 
     img.onclick = () => {
 
-      // 내 턴만 가능
       if (
-        String(state.turn)
-        !==
-        String(myId)
+        state.turn !== myId
       ) {
         return;
       }
@@ -344,7 +342,8 @@ function renderCaptured() {
           document.createElement("img");
 
         img.src =
-          "cards/" + card;
+          "cards/" +
+          encodeURIComponent(card);
 
         img.className =
           "captureCard";
@@ -355,7 +354,7 @@ function renderCaptured() {
 }
 
 // =========================
-// 먹은패 초기화
+// 초기화
 // =========================
 
 function clearCaptured() {
@@ -406,9 +405,7 @@ function getCardType(card) {
 function getCaptureRow(playerId, card) {
 
   const mine =
-    String(playerId)
-    ===
-    String(myId);
+    playerId === myId;
 
   const type =
     getCardType(card);
