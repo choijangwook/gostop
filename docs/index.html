@@ -165,8 +165,6 @@ body{
   margin:0;
   padding:0;
 
-  margin-bottom:0;
-
   opacity:0.92;
 }
 
@@ -232,12 +230,16 @@ body{
   margin-top:-13px;
 }
 
-/* 첫 줄은 안 겹치게 */
+/* 첫줄은 안겹침 */
 
 .captureRow:first-of-type{
 
   margin-top:0;
 }
+
+/* 핵심:
+   좌우 겹침
+*/
 
 .captureRow img{
 
@@ -251,10 +253,19 @@ body{
 
   border-radius:3px;
 
-  flex-shrink:1;
+  flex-shrink:0;
+
+  margin-right:-30%;
 }
 
-/* 카드 많아질수록 자동 축소 */
+/* 마지막 카드 정상 */
+
+.captureRow img:last-child{
+
+  margin-right:0;
+}
+
+/* 많아질수록 자동축소 */
 
 .captureRow img:nth-child(n+9){
 
@@ -292,6 +303,8 @@ body{
   .captureRow img{
 
     width:42px;
+
+    margin-right:-14px;
   }
 
   .captureRow{
@@ -340,9 +353,7 @@ body{
 
 <body>
 
-<!-- =====================
-     로비
-===================== -->
+<!-- 로비 -->
 
 <div id="lobby">
 
@@ -362,9 +373,7 @@ body{
 
 </div>
 
-<!-- =====================
-     게임
-===================== -->
+<!-- 게임 -->
 
 <div id="game">
 
@@ -508,7 +517,6 @@ body{
 </div>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
 <script src="app.js"></script>
 
 </body>
