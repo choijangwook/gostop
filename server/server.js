@@ -17,7 +17,7 @@ console.log("🎴 Gostop 서버 실행중");
 const rooms = {};
 
 // =========================
-// 카드 덱 생성
+// 카드 생성
 // =========================
 
 function createDeck() {
@@ -184,6 +184,27 @@ function sendState(room) {
 }
 
 // =========================
+// 턴 넘김
+// =========================
+
+function nextTurn(room, playerId) {
+
+  const current =
+    room.players.indexOf(
+      playerId
+    );
+
+  room.turn =
+    room.players[
+      (
+        current + 1
+      )
+      %
+      room.players.length
+    ];
+}
+
+// =========================
 // 카드 플레이
 // =========================
 
@@ -210,10 +231,70 @@ function playCard(
   // 손패 제거
   hand.splice(idx, 1);
 
+  // =====================
+  // special 카드 처리
+  // =====================
+
+  if (
+    card.includes("special")
+  ) {
+
+    // special 자체 먹기
+    room.captured[playerId]
+      .push(card);
+
+    room.lastCapture = true;
+
+    // 바닥패 1장 가져오기
+    if (
+      room.table.length > 0
+    ) {
+
+      const taken =
+        room.table.pop();
+
+      room.captured[playerId]
+        .push(taken);
+    }
+
+    // 덱 1장 추가 드로우
+    if (
+      room.deck.length > 0
+    ) {
+
+      const draw =
+        room.deck.pop();
+
+      room.table.push(draw);
+    }
+
+    nextTurn(room, playerId);
+
+    sendState(room);
+
+    // 봇 턴
+    if (
+      room.bot &&
+      room.turn === "BOT"
+    ) {
+
+      setTimeout(() => {
+
+        botPlay(room);
+
+      }, 700);
+    }
+
+    return;
+  }
+
+  // =====================
+  // 일반 카드 처리
+  // =====================
+
   const month =
     getMonth(card);
 
-  // 같은 월 찾기
   const match =
     room.table.find(
       c =>
@@ -222,10 +303,7 @@ function playCard(
         month
     );
 
-  // =====================
   // 먹기 성공
-  // =====================
-
   if (match) {
 
     room.table =
@@ -248,10 +326,12 @@ function playCard(
   }
 
   // =====================
-  // 덱 드로우
+  // 드로우
   // =====================
 
-  if (room.deck.length > 0) {
+  if (
+    room.deck.length > 0
+  ) {
 
     const draw =
       room.deck.pop();
@@ -288,26 +368,11 @@ function playCard(
     }
   }
 
-  // =====================
-  // 턴 변경
-  // =====================
-
-  const currentIndex =
-    room.players.indexOf(
-      playerId
-    );
-
-  room.turn =
-    room.players[
-      (
-        currentIndex + 1
-      )
-      %
-      room.players.length
-    ];
+  // 턴 넘김
+  nextTurn(room, playerId);
 
   // =====================
-  // 게임 종료
+  // 종료 체크
   // =====================
 
   const end =
@@ -328,6 +393,7 @@ function playCard(
         >
         room.captured[best].length
       ) {
+
         best = p;
       }
     });
@@ -350,12 +416,12 @@ function playCard(
 
       botPlay(room);
 
-    }, 800);
+    }, 700);
   }
 }
 
 // =========================
-// 봇 플레이
+// 봇
 // =========================
 
 function botPlay(room) {
@@ -388,10 +454,7 @@ io.on("connection", socket => {
 
   console.log("접속:", socket.id);
 
-  // =====================
   // 방 참가
-  // =====================
-
   socket.on("joinRoom", data => {
 
     const roomId =
@@ -431,7 +494,6 @@ io.on("connection", socket => {
       room.captured[socket.id] =
         [];
 
-      // 초기패 10장
       for (
         let i = 0;
         i < 10;
@@ -445,10 +507,7 @@ io.on("connection", socket => {
       }
     }
 
-    // =====================
     // 컴퓨터 대결
-    // =====================
-
     if (
       data.bot &&
       !room.bot
@@ -487,10 +546,7 @@ io.on("connection", socket => {
     sendState(room);
   });
 
-  // =====================
   // 카드 플레이
-  // =====================
-
   socket.on("playCard", data => {
 
     const room =
@@ -515,10 +571,7 @@ io.on("connection", socket => {
     );
   });
 
-  // =====================
   // 종료
-  // =====================
-
   socket.on("disconnect", () => {
 
     Object.values(rooms)
