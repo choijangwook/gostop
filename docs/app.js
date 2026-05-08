@@ -37,10 +37,10 @@ socket.on("stateUpdate", (s) => {
 function joinRoom() {
 
   let roomId =
-    document.getElementById("roomInput").value;
+    document.getElementById("roomInput").value.trim();
 
   // 방번호 자동 생성
-  if (!roomId || roomId.trim() === "") {
+  if (!roomId) {
 
     roomId =
       Math.floor(
@@ -74,19 +74,128 @@ function render() {
 
   if (!state) return;
 
+  createLayout();
+
   renderStatus();
+
+  renderEnemyCaptured();
+
+  renderEnemyHands();
 
   renderTable();
 
   renderMyHand();
 
-  renderEnemyHands();
-
-  renderCaptured();
+  renderMyCaptured();
 }
 
 /* =========================
-   상태 표시
+   레이아웃 자동 생성
+========================= */
+
+function createLayout() {
+
+  const game =
+    document.getElementById("game");
+
+  if (
+    document.getElementById("mainLayout")
+  ) return;
+
+  game.innerHTML = `
+
+    <div id="mainLayout">
+
+      <div
+        id="status"
+        class="section"
+      ></div>
+
+      <div class="section">
+        <div class="title">
+          상대방이 먹은패
+        </div>
+
+        <div
+          id="enemyCaptured"
+          class="row"
+        ></div>
+      </div>
+
+      <div class="section">
+        <div class="title">
+          상대 패
+        </div>
+
+        <div
+          id="enemyHands"
+          class="row"
+        ></div>
+      </div>
+
+      <div class="section">
+        <div class="title">
+          바닥패
+        </div>
+
+        <div
+          id="table"
+          class="row"
+        ></div>
+      </div>
+
+      <div class="section">
+        <div class="title">
+          내 패
+        </div>
+
+        <div
+          id="hand"
+          class="row"
+        ></div>
+      </div>
+
+      <div class="section">
+        <div class="title">
+          내가 먹은패
+        </div>
+
+        <div
+          id="captured"
+          class="row"
+        ></div>
+      </div>
+
+      <div
+        style="
+          display:flex;
+          gap:6px;
+          margin-top:6px;
+        "
+      >
+
+        <button
+          onclick="leaveRoom()"
+          style="flex:1;"
+        >
+          나가기
+        </button>
+
+        <button
+          onclick="giveUp()"
+          style="flex:1;"
+        >
+          그만두기
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
+/* =========================
+   상태
 ========================= */
 
 function renderStatus() {
@@ -107,6 +216,83 @@ function renderStatus() {
     (state.turn === myId
       ? "🟢 내 턴"
       : "⏳ 상대 턴");
+}
+
+/* =========================
+   상대 먹은패
+========================= */
+
+function renderEnemyCaptured() {
+
+  const div =
+    document.getElementById(
+      "enemyCaptured"
+    );
+
+  if (!div) return;
+
+  div.innerHTML = "";
+
+  const enemies =
+    Object.keys(state.captured || {})
+      .filter(id => id !== myId);
+
+  enemies.forEach(id => {
+
+    const cards =
+      state.captured[id] || [];
+
+    cards.forEach(card => {
+
+      const img =
+        document.createElement("img");
+
+      img.src =
+        "cards/" + card;
+
+      div.appendChild(img);
+    });
+  });
+}
+
+/* =========================
+   상대 패
+========================= */
+
+function renderEnemyHands() {
+
+  const div =
+    document.getElementById(
+      "enemyHands"
+    );
+
+  if (!div) return;
+
+  div.innerHTML = "";
+
+  const enemies =
+    Object.keys(state.hands || {})
+      .filter(id => id !== myId);
+
+  enemies.forEach(id => {
+
+    const enemyHand =
+      state.hands[id] || [];
+
+    // 🔥 핵심 수정:
+    // 상대 실제 손패 수만 표시
+
+    enemyHand.forEach(() => {
+
+      const img =
+        document.createElement("img");
+
+      img.src =
+        "cards/0-back.png";
+
+      div.appendChild(img);
+    });
+  });
 }
 
 /* =========================
@@ -135,7 +321,7 @@ function renderTable() {
 }
 
 /* =========================
-   내패
+   내 패
 ========================= */
 
 function renderMyHand() {
@@ -163,6 +349,8 @@ function renderMyHand() {
       if (state.turn !== myId)
         return;
 
+      playSound("card.mp3");
+
       socket.emit("playCard", {
 
         roomId: state.roomId,
@@ -176,118 +364,24 @@ function renderMyHand() {
 }
 
 /* =========================
-   상대 패 (뒷면)
+   내 먹은패
 ========================= */
 
-function renderEnemyHands() {
+function renderMyCaptured() {
 
-  let enemyDiv =
-    document.getElementById("enemyHands");
-
-  // 없으면 자동 생성
-
-  if (!enemyDiv) {
-
-    enemyDiv =
-      document.createElement("div");
-
-    enemyDiv.id = "enemyHands";
-
-    enemyDiv.className = "section";
-
-    enemyDiv.innerHTML =
-
-      '<div class="title">상대 패</div>' +
-
-      '<div id="enemyCards" class="row"></div>';
-
-    const game =
-      document.getElementById("game");
-
-    game.insertBefore(
-      enemyDiv,
-      game.firstChild.nextSibling
+  const cap =
+    document.getElementById(
+      "captured"
     );
-  }
 
-  const row =
-    document.getElementById("enemyCards");
+  if (!cap) return;
 
-  row.innerHTML = "";
+  cap.innerHTML = "";
 
-  const enemies =
-    Object.keys(state.hands || {})
-      .filter(id => id !== myId);
-
-  enemies.forEach(id => {
-
-    const enemyHand =
-      state.hands[id] || [];
-
-    enemyHand.forEach(() => {
-
-      const img =
-        document.createElement("img");
-
-      img.src =
-        "cards/0-back.png";
-
-      row.appendChild(img);
-    });
-  });
-}
-
-/* =========================
-   먹은패
-========================= */
-
-function renderCaptured() {
-
-  // 내 먹은패
-
-  const myCapDiv =
-    document.getElementById("captured");
-
-  if (myCapDiv)
-    myCapDiv.innerHTML = "";
-
-  // 상대 먹은패
-
-  let enemyCapDiv =
-    document.getElementById("enemyCaptured");
-
-  if (!enemyCapDiv) {
-
-    enemyCapDiv =
-      document.createElement("div");
-
-    enemyCapDiv.id = "enemyCaptured";
-
-    enemyCapDiv.className = "section";
-
-    enemyCapDiv.innerHTML =
-
-      '<div class="title">상대방이 먹은패</div>' +
-
-      '<div id="enemyCapturedRow" class="row"></div>';
-
-    const game =
-      document.getElementById("game");
-
-    game.appendChild(enemyCapDiv);
-  }
-
-  const enemyRow =
-    document.getElementById("enemyCapturedRow");
-
-  enemyRow.innerHTML = "";
-
-  // 내 먹은패 표시
-
-  const myCaptured =
+  const myCap =
     state.captured?.[myId] || [];
 
-  myCaptured.forEach(card => {
+  myCap.forEach(card => {
 
     const img =
       document.createElement("img");
@@ -295,29 +389,40 @@ function renderCaptured() {
     img.src =
       "cards/" + card;
 
-    myCapDiv.appendChild(img);
+    cap.appendChild(img);
   });
+}
 
-  // 상대 먹은패 표시
+/* =========================
+   나가기
+========================= */
 
-  const enemies =
-    Object.keys(state.captured || {})
-      .filter(id => id !== myId);
+function leaveRoom() {
 
-  enemies.forEach(id => {
+  location.reload();
+}
 
-    const enemyCaptured =
-      state.captured[id] || [];
+/* =========================
+   그만두기
+========================= */
 
-    enemyCaptured.forEach(card => {
+function giveUp() {
 
-      const img =
-        document.createElement("img");
+  alert("게임 포기");
 
-      img.src =
-        "cards/" + card;
+  location.reload();
+}
 
-      enemyRow.appendChild(img);
-    });
-  });
+/* =========================
+   사운드
+========================= */
+
+function playSound(file) {
+
+  const audio =
+    new Audio("sounds/" + file);
+
+  audio.volume = 0.7;
+
+  audio.play();
 }
