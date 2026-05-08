@@ -2,73 +2,216 @@
 <html lang="ko">
 
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<meta
+  name="viewport"
+  content="
+    width=device-width,
+    initial-scale=1.0,
+    maximum-scale=1.0,
+    user-scalable=no
+  "
+>
+
 <title>고스톱</title>
 
 <style>
 
 body {
+
   margin: 0;
+
   background: #2f4f2f;
+
   color: white;
+
   font-family: sans-serif;
+
+  overflow: hidden;
 }
 
-#lobby, #game {
-  width: 100vw;
-  height: 100vh;
-}
-
-#lobby {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
+#lobby,
 #game {
-  display: none;
-  padding: 6px;
+
+  width: 100vw;
+
+  height: 100vh;
+
   box-sizing: border-box;
 }
 
-/* 버튼 */
+/* =========================
+   로비
+========================= */
+
+#lobby {
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding-bottom: 80px;
+}
+
 button {
+
   width: 220px;
-  padding: 12px;
-  font-size: 18px;
+
+  height: 50px;
+
   border: none;
-  border-radius: 8px;
+
+  border-radius: 10px;
+
+  font-size: 18px;
+
+  cursor: pointer;
 }
 
 button.active {
+
   background: #2ecc71;
+
   color: black;
+
+  font-weight: bold;
 }
 
-/* 카드 영역 */
-.section {
-  border: 1px solid rgba(255,255,255,0.2);
-  margin-bottom: 6px;
+#roomInput {
+
+  width: 220px;
+
+  height: 50px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  font-size: 20px;
+
+  text-align: center;
+}
+
+/* =========================
+   게임
+========================= */
+
+#game {
+
+  display: none;
+
   padding: 4px;
-  border-radius: 6px;
+
+  overflow-y: auto;
+}
+
+/* =========================
+   영역
+========================= */
+
+.section {
+
+  border: 1px solid rgba(255,255,255,0.2);
+
+  border-radius: 8px;
+
+  padding: 4px;
+
+  margin-bottom: 6px;
 }
 
 .title {
+
   font-size: 12px;
+
   margin-bottom: 2px;
 }
 
+/* =========================
+   카드 줄
+========================= */
+
 .row {
+
   display: flex;
-  gap: 2px;
+
   flex-wrap: wrap;
+
+  gap: 2px;
 }
 
+/* =========================
+   카드
+========================= */
+
 img {
-  width: 40px;
+
+  width: 42px;
+
+  user-select: none;
+
+  -webkit-user-drag: none;
+}
+
+/* =========================
+   상태
+========================= */
+
+#status {
+
+  font-size: 14px;
+
+  font-weight: bold;
+
+  text-align: center;
+}
+
+/* =========================
+   모바일
+========================= */
+
+@media (max-width: 700px) {
+
+  img {
+
+    width: 34px;
+  }
+
+  .title {
+
+    font-size: 11px;
+  }
+
+  #status {
+
+    font-size: 12px;
+  }
+
+  button {
+
+    width: 210px;
+
+    height: 48px;
+
+    font-size: 16px;
+  }
+
+  #roomInput {
+
+    width: 210px;
+
+    height: 48px;
+
+    font-size: 18px;
+  }
 }
 
 </style>
@@ -77,79 +220,130 @@ img {
 
 <body>
 
-<!-- ===================== -->
-<!-- 로비 -->
-<!-- ===================== -->
+<!-- =========================
+     로비
+========================= -->
+
 <div id="lobby">
 
-  <button id="btn2" onclick="selectMode(2)">2인용 방 만들기</button>
-  <button id="btn3" onclick="selectMode(3)">3인용 방 만들기</button>
+  <button
+    id="btn2"
+    onclick="selectMode(2)"
+  >
+    2인용 방 만들기
+  </button>
 
-  <input id="roomInput" placeholder="방번호 입력">
+  <button
+    id="btn3"
+    onclick="selectMode(3)"
+  >
+    3인용 방 만들기
+  </button>
 
-  <button onclick="joinRoom()">방 참가</button>
+  <input
+    id="roomInput"
+    placeholder="방번호 입력"
+    maxlength="3"
+  >
 
-</div>
-
-<!-- ===================== -->
-<!-- 게임 -->
-<!-- ===================== -->
-<div id="game">
-
-  <div id="status"></div>
-
-  <div class="section">
-    <div class="title">바닥패</div>
-    <div id="table" class="row"></div>
-  </div>
-
-  <div class="section">
-    <div class="title">내 패</div>
-    <div id="hand" class="row"></div>
-  </div>
-
-  <div class="section">
-    <div class="title">내가 먹은패</div>
-    <div id="captured" class="row"></div>
-  </div>
+  <button onclick="joinRoom()">
+    방 참가
+  </button>
 
 </div>
+
+<!-- =========================
+     게임
+========================= -->
+
+<div id="game"></div>
+
+<!-- =========================
+     socket
+========================= -->
 
 <script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-
-<script src="app.js"></script>
 
 <script>
 
 let selectedMode = 2;
 
+/* =========================
+   모드 선택
+========================= */
+
 function selectMode(mode) {
 
   selectedMode = mode;
 
-  document.getElementById("btn2").classList.remove("active");
-  document.getElementById("btn3").classList.remove("active");
+  // 버튼 초기화
 
-  document.getElementById("btn" + mode).classList.add("active");
-}
+  document
+    .getElementById("btn2")
+    .classList
+    .remove("active");
 
-function joinRoom() {
+  document
+    .getElementById("btn3")
+    .classList
+    .remove("active");
+
+  // 버튼 텍스트 초기화
+
+  document
+    .getElementById("btn2")
+    .innerText =
+      "2인용 방 만들기";
+
+  document
+    .getElementById("btn3")
+    .innerText =
+      "3인용 방 만들기";
+
+  // 선택 강조
+
+  if (mode === 2) {
+
+    document
+      .getElementById("btn2")
+      .classList
+      .add("active");
+
+    document
+      .getElementById("btn2")
+      .innerText =
+        "2인용 방 입장가능";
+  }
+
+  if (mode === 3) {
+
+    document
+      .getElementById("btn3")
+      .classList
+      .add("active");
+
+    document
+      .getElementById("btn3")
+      .innerText =
+        "3인용 방 입장가능";
+  }
+
+  // 🔥 방번호 자동 생성
 
   const roomId =
-    Number(document.getElementById("roomInput").value);
 
-  if (!roomId) return;
+    Math.floor(
+      100 + Math.random() * 900
+    );
 
-  socket.emit("joinRoom", {
-    roomId,
-    mode: selectedMode
-  });
-
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("game").style.display = "block";
+  document
+    .getElementById("roomInput")
+    .value = roomId;
 }
 
 </script>
+
+<script src="app.js"></script>
 
 </body>
 
