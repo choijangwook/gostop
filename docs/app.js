@@ -370,6 +370,38 @@ function renderCaptured() {
       const cards =
         state.captured[playerId];
 
+
+cards.sort((a, b) => {
+
+  function typeOrder(card){
+
+    if(card.includes("bright")) return 0;
+
+    if(card.includes("animal")) return 1;
+
+    if(card.includes("ribbon")) return 2;
+
+    return 3;
+  }
+
+  const ta = typeOrder(a);
+  const tb = typeOrder(b);
+
+  if(ta !== tb){
+
+    return ta - tb;
+  }
+
+  const ma =
+    parseInt(a.split("_")[0]) || 99;
+
+  const mb =
+    parseInt(b.split("_")[0]) || 99;
+
+  return ma - mb;
+});
+      
+
       cards.forEach(card => {
 
         const row =
