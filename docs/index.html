@@ -109,7 +109,7 @@ button {
 }
 
 /* ========================= */
-/* 상단 정보 */
+/* 상단 */
 /* ========================= */
 
 #topInfo {
@@ -192,11 +192,40 @@ img {
   touch-action: manipulation;
 }
 
-/* 먹은패 카드 */
+/* 먹은패 */
 
 .captureCard {
 
   width: 28px;
+}
+
+/* 상대 패 */
+
+.backCard {
+
+  width: 40px;
+}
+
+/* ========================= */
+/* 하단 버튼 */
+/* ========================= */
+
+#bottomButtons {
+
+  position: fixed;
+
+  right: 4px;
+
+  bottom: 4px;
+
+  z-index: 999;
+}
+
+#bottomButtons button {
+
+  padding: 3px 6px;
+
+  font-size: 11px;
 }
 
 /* ========================= */
@@ -223,6 +252,11 @@ img {
   .captureCard {
 
     width: 21px;
+  }
+
+  .backCard {
+
+    width: 30px;
   }
 
   .cardRow {
@@ -275,6 +309,7 @@ img {
   <div id="game">
 
     <!-- 상단 -->
+
     <div id="topInfo">
 
       <h3 id="turn">
@@ -310,6 +345,20 @@ img {
     </div>
 
     <!-- ========================= -->
+    <!-- 상대 패 -->
+    <!-- ========================= -->
+
+    <div class="section">
+
+      <div class="sectionTitle">
+        상대 패
+      </div>
+
+      <div id="enemyHand" class="cardRow"></div>
+
+    </div>
+
+    <!-- ========================= -->
     <!-- 바닥패 -->
     <!-- ========================= -->
 
@@ -324,7 +373,7 @@ img {
     </div>
 
     <!-- ========================= -->
-    <!-- 내패 -->
+    <!-- 내 패 -->
     <!-- ========================= -->
 
     <div class="section">
@@ -356,6 +405,18 @@ img {
       <div id="myJunk" class="cardRow"></div>
 
     </div>
+
+  </div>
+
+  <!-- ========================= -->
+  <!-- 나가기 -->
+  <!-- ========================= -->
+
+  <div id="bottomButtons">
+
+    <button onclick="leaveGame()">
+      나가기
+    </button>
 
   </div>
 
