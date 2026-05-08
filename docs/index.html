@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+
 <meta charset="UTF-8" />
 
 <meta
@@ -16,6 +17,11 @@
 <title>GoStop</title>
 
 <style>
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
 
 html,
 body{
@@ -40,7 +46,7 @@ body{
 
 #lobby{
 
-  width:100%;
+  width:100vw;
   height:100vh;
 
   display:flex;
@@ -77,7 +83,7 @@ body{
 }
 
 /* =========================
-   게임
+   게임 전체
 ========================= */
 
 #game{
@@ -87,11 +93,14 @@ body{
   width:100vw;
   height:100vh;
 
-  box-sizing:border-box;
+  overflow:hidden;
 
   padding:2px;
 
-  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+
+  justify-content:space-between;
 }
 
 /* =========================
@@ -100,24 +109,32 @@ body{
 
 #topBar{
 
+  height:24px;
+
   display:flex;
 
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
 
-  font-size:12px;
+  flex-shrink:0;
 
-  margin-bottom:2px;
+  font-size:11px;
+}
+
+.topButtons{
+
+  display:flex;
+  gap:4px;
 }
 
 .smallBtn{
 
-  font-size:10px;
+  font-size:9px;
 
   padding:2px 5px;
 
   border:none;
-  border-radius:5px;
+  border-radius:4px;
 }
 
 /* =========================
@@ -126,61 +143,75 @@ body{
 
 .section{
 
-  margin-bottom:3px;
+  width:100%;
+
+  overflow:hidden;
+
+  flex-shrink:0;
 }
 
 .sectionTitle{
 
-  font-size:11px;
-
-  margin-bottom:1px;
+  font-size:10px;
 
   font-weight:bold;
-}
-
-/* =========================
-   일반 줄
-========================= */
-
-.cardRow{
-
-  display:flex;
-
-  flex-wrap:nowrap;
-
-  gap:1px;
-
-  overflow:hidden;
-
-  width:100%;
-}
-
-/* =========================
-   먹은패
-========================= */
-
-.captureRow{
-
-  display:flex;
-
-  flex-wrap:nowrap;
-
-  gap:1px;
-
-  overflow:hidden;
-
-  width:100%;
 
   margin-bottom:1px;
+
+  line-height:10px;
 }
 
 /* =========================
-   기본 카드 크기
+   높이 비율
 ========================= */
 
-img{
+#enemyCapturedSection{
+  height:23vh;
+}
 
-  width:48px;
+#enemyHandSection{
+  height:11vh;
+}
+
+#tableSection{
+  height:13vh;
+}
+
+#myHandSection{
+  height:13vh;
+}
+
+#myCapturedSection{
+  height:23vh;
+}
+
+/* =========================
+   줄
+========================= */
+
+.cardRow,
+.captureRow{
+
+  width:100%;
+
+  display:flex;
+
+  flex-wrap:nowrap;
+
+  overflow:hidden;
+
+  gap:1px;
+}
+
+/* =========================
+   일반 카드
+========================= */
+
+.cardRow img{
+
+  width:11vw;
+
+  max-width:56px;
 
   height:auto;
 
@@ -192,91 +223,77 @@ img{
 }
 
 /* =========================
-   먹은패 자동축소
+   먹은패 카드
 ========================= */
 
 .captureRow img{
 
-  width:42px;
+  width:9vw;
+
+  max-width:46px;
+
+  height:auto;
+
+  object-fit:contain;
+
+  border-radius:4px;
+
+  flex-shrink:1;
 }
+
+/* 카드 많아질수록 자동축소 */
 
 .captureRow img:nth-child(n+9){
 
-  width:36px;
+  width:7.8vw;
 }
 
 .captureRow img:nth-child(n+13){
 
-  width:30px;
+  width:6.8vw;
 }
 
 .captureRow img:nth-child(n+17){
 
-  width:26px;
+  width:5.8vw;
 }
 
 /* =========================
-   모바일
+   PC
 ========================= */
 
-@media (max-width:700px){
+@media (min-width:701px){
 
   #game{
 
-    padding:1px;
+    max-width:1000px;
+
+    margin:auto;
   }
 
-  .section{
+  .cardRow img{
 
-    margin-bottom:2px;
-  }
-
-  .sectionTitle{
-
-    font-size:10px;
-
-    margin-bottom:0;
-  }
-
-  #topBar{
-
-    font-size:10px;
-  }
-
-  .smallBtn{
-
-    font-size:9px;
-
-    padding:1px 4px;
-  }
-
-  /* 전체 한 화면 */
-
-  img{
-
-    width:11.5vw;
-
-    max-width:52px;
+    width:56px;
   }
 
   .captureRow img{
 
-    width:10vw;
+    width:46px;
   }
 
   .captureRow img:nth-child(n+9){
 
-    width:8.7vw;
+    width:40px;
   }
 
   .captureRow img:nth-child(n+13){
 
-    width:7.5vw;
+    width:34px;
   }
 
   .captureRow img:nth-child(n+17){
 
-    width:6.4vw;
+    width:28px;
   }
 }
 
@@ -318,25 +335,39 @@ img{
   <div id="topBar">
 
     <div id="turn">
-      대기중...
+      🟢 내 턴
     </div>
 
     <div id="deck">
       남은패 : 0
     </div>
 
-    <button
-      class="smallBtn"
-      onclick="leaveGame()"
-    >
-      나가기
-    </button>
+    <div class="topButtons">
+
+      <button
+        class="smallBtn"
+        onclick="location.reload()"
+      >
+        다시 시작
+      </button>
+
+      <button
+        class="smallBtn"
+        onclick="leaveGame()"
+      >
+        나가기
+      </button>
+
+    </div>
 
   </div>
 
   <!-- 상대 먹은패 -->
 
-  <div class="section">
+  <div
+    class="section"
+    id="enemyCapturedSection"
+  >
 
     <div class="sectionTitle">
       상대 먹은패
@@ -362,9 +393,12 @@ img{
 
   </div>
 
-  <!-- 상대 패 -->
+  <!-- 상대패 -->
 
-  <div class="section">
+  <div
+    class="section"
+    id="enemyHandSection"
+  >
 
     <div class="sectionTitle">
       상대패
@@ -379,7 +413,10 @@ img{
 
   <!-- 바닥패 -->
 
-  <div class="section">
+  <div
+    class="section"
+    id="tableSection"
+  >
 
     <div class="sectionTitle">
       바닥패
@@ -392,9 +429,12 @@ img{
 
   </div>
 
-  <!-- 내 패 -->
+  <!-- 내패 -->
 
-  <div class="section">
+  <div
+    class="section"
+    id="myHandSection"
+  >
 
     <div class="sectionTitle">
       내패
@@ -409,7 +449,10 @@ img{
 
   <!-- 내가 먹은패 -->
 
-  <div class="section">
+  <div
+    class="section"
+    id="myCapturedSection"
+  >
 
     <div class="sectionTitle">
       내가 먹은패
@@ -440,6 +483,7 @@ img{
 </div>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
 <script src="app.js"></script>
 
 </body>
