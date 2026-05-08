@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
+
 <meta
   name="viewport"
   content="
@@ -18,10 +19,13 @@
 
 html,
 body{
+
   margin:0;
   padding:0;
+
   width:100%;
   height:100%;
+
   overflow:hidden;
 
   background:#165c31;
@@ -35,6 +39,7 @@ body{
 ========================= */
 
 #lobby{
+
   width:100%;
   height:100vh;
 
@@ -49,7 +54,7 @@ body{
 
 #lobby input{
 
-  width:130px;
+  width:120px;
 
   padding:10px;
 
@@ -63,16 +68,16 @@ body{
 
 #lobby button{
 
-  padding:10px 16px;
+  padding:10px 14px;
 
   border:none;
   border-radius:8px;
 
-  font-size:16px;
+  font-size:15px;
 }
 
 /* =========================
-   게임화면
+   게임
 ========================= */
 
 #game{
@@ -82,15 +87,15 @@ body{
   width:100vw;
   height:100vh;
 
-  overflow:hidden;
-
   box-sizing:border-box;
 
   padding:2px;
+
+  overflow:hidden;
 }
 
 /* =========================
-   상태
+   상단
 ========================= */
 
 #topBar{
@@ -100,16 +105,16 @@ body{
   justify-content:space-between;
   align-items:center;
 
-  font-size:13px;
+  font-size:12px;
 
   margin-bottom:2px;
 }
 
 .smallBtn{
 
-  font-size:11px;
+  font-size:10px;
 
-  padding:2px 6px;
+  padding:2px 5px;
 
   border:none;
   border-radius:5px;
@@ -121,12 +126,12 @@ body{
 
 .section{
 
-  margin-bottom:5px;
+  margin-bottom:4px;
 }
 
 .sectionTitle{
 
-  font-size:12px;
+  font-size:11px;
 
   margin-bottom:1px;
 
@@ -134,7 +139,7 @@ body{
 }
 
 /* =========================
-   카드줄
+   일반 줄
 ========================= */
 
 .cardRow{
@@ -145,13 +150,13 @@ body{
 
   gap:1px;
 
-  min-height:58px;
-
   overflow:hidden;
+
+  min-height:58px;
 }
 
 /* =========================
-   먹은패 전용 3줄
+   먹은패 3줄
 ========================= */
 
 .captureRow{
@@ -162,11 +167,11 @@ body{
 
   gap:1px;
 
-  min-height:42px;
+  overflow:hidden;
+
+  min-height:38px;
 
   margin-bottom:1px;
-
-  overflow:hidden;
 }
 
 /* =========================
@@ -185,16 +190,6 @@ img{
 }
 
 /* =========================
-   2인용 / 3인용
-========================= */
-
-body.twoPlayer img,
-body.threePlayer img{
-
-  width:54px;
-}
-
-/* =========================
    모바일
 ========================= */
 
@@ -207,55 +202,47 @@ body.threePlayer img{
 
   .section{
 
-    margin-bottom:3px;
+    margin-bottom:2px;
   }
 
   .sectionTitle{
 
-    font-size:11px;
+    font-size:10px;
 
     margin-bottom:0;
   }
 
-  img{
-
-    width:18vw;
-
-    max-width:72px;
-  }
-
-  body.twoPlayer img{
-
-    width:21vw;
-    max-width:86px;
-  }
-
-  body.threePlayer img{
-
-    width:18vw;
-    max-width:74px;
-  }
-
   #topBar{
 
-    font-size:11px;
+    font-size:10px;
   }
 
   .smallBtn{
 
-    font-size:10px;
+    font-size:9px;
 
-    padding:1px 5px;
+    padding:1px 4px;
+  }
+
+  /* 핵심:
+     전부 한 화면에 보이도록
+  */
+
+  img{
+
+    width:13.5vw;
+
+    max-width:56px;
   }
 
   .cardRow{
 
-    min-height:20vw;
+    min-height:14vw;
   }
 
   .captureRow{
 
-    min-height:14vw;
+    min-height:10vw;
   }
 }
 
@@ -292,7 +279,7 @@ body.threePlayer img{
 
 <div id="game">
 
-  <!-- 상태 -->
+  <!-- 상단 -->
 
   <div id="topBar">
 
@@ -371,7 +358,7 @@ body.threePlayer img{
 
   </div>
 
-  <!-- 내 패 -->
+  <!-- 내패 -->
 
   <div class="section">
 
