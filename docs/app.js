@@ -75,7 +75,7 @@ function joinRoom() {
 
   document
     .getElementById("game")
-    .style.display = "block";
+    .style.display = "flex";
 }
 
 // =========================
@@ -104,7 +104,7 @@ function playWithBot() {
 
   document
     .getElementById("game")
-    .style.display = "block";
+    .style.display = "flex";
 }
 
 // =========================
@@ -269,6 +269,7 @@ function renderTable() {
       const img =
         document.createElement("img");
 
+      // 핵심 수정
       img.src =
         "cards/" + card;
 
@@ -305,11 +306,23 @@ function renderHand() {
     const img =
       document.createElement("img");
 
-    // 이미지 깨짐 수정
+    // 핵심 수정
     img.src =
-      "./cards/" + card;
+      "cards/" + card;
 
-    // 상대 턴
+    // 이미지 깨짐 방지
+    img.onerror = () => {
+
+      console.log(
+        "이미지 없음:",
+        card
+      );
+
+      img.src =
+        "cards/0-back.png";
+    };
+
+    // 상대 턴이면 어둡게
     if (!isMyTurn) {
 
       img.style.filter =
@@ -371,8 +384,15 @@ function renderCaptured() {
         const img =
           document.createElement("img");
 
+        // 핵심 수정
         img.src =
-          "./cards/" + card;
+          "cards/" + card;
+
+        img.onerror = () => {
+
+          img.src =
+            "cards/0-back.png";
+        };
 
         img.className =
           "captureCard";
@@ -389,13 +409,11 @@ function renderCaptured() {
 function clearCaptured() {
 
   [
-    "enemyBright",
-    "enemyAnimal",
+    "enemyBrightAnimal",
     "enemyRibbon",
     "enemyJunk",
 
-    "myBright",
-    "myAnimal",
+    "myBrightAnimal",
     "myRibbon",
     "myJunk"
   ]
@@ -415,14 +433,19 @@ function clearCaptured() {
 
 function getCardType(card) {
 
-  if (card.includes("bright"))
-    return "Bright";
+  if (
+    card.includes("bright")
+    ||
+    card.includes("animal")
+  ) {
+    return "BrightAnimal";
+  }
 
-  if (card.includes("animal"))
-    return "Animal";
-
-  if (card.includes("ribbon"))
+  if (
+    card.includes("ribbon")
+  ) {
     return "Ribbon";
+  }
 
   return "Junk";
 }
