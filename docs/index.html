@@ -1,431 +1,425 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-
-<meta charset="UTF-8">
-
+<meta charset="UTF-8" />
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1.0, user-scalable=no"
->
+  content="
+    width=device-width,
+    initial-scale=1,
+    maximum-scale=1,
+    user-scalable=no
+  "
+/>
 
-<title>고스톱</title>
+<title>GoStop</title>
 
 <style>
 
-body {
+html,
+body{
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
 
-  margin: 0;
+  background:#165c31;
+  color:white;
 
-  overflow: hidden;
-
-  background: #2f4f2f;
-
-  color: white;
-
-  font-family: sans-serif;
+  font-family:sans-serif;
 }
 
-/* ========================= */
-/* 전체 */
-/* ========================= */
+/* =========================
+   로비
+========================= */
 
-#wrap {
+#lobby{
+  width:100%;
+  height:100vh;
 
-  width: 100vw;
+  display:flex;
+  flex-direction:column;
 
-  height: 100vh;
+  justify-content:center;
+  align-items:center;
 
-  box-sizing: border-box;
-
-  padding: 2px;
+  gap:10px;
 }
 
-/* ========================= */
-/* 입장 */
-/* ========================= */
+#lobby input{
 
-#lobby {
+  width:130px;
 
-  display: flex;
+  padding:10px;
 
-  flex-direction: column;
+  border:none;
+  border-radius:8px;
 
-  justify-content: center;
+  text-align:center;
 
-  align-items: center;
-
-  width: 100%;
-
-  height: 100%;
-
-  gap: 10px;
+  font-size:18px;
 }
 
-#roomInput {
+#lobby button{
 
-  width: 170px;
+  padding:10px 16px;
 
-  padding: 10px;
+  border:none;
+  border-radius:8px;
 
-  font-size: 20px;
-
-  text-align: center;
-
-  border-radius: 8px;
-
-  border: none;
+  font-size:16px;
 }
 
-button {
+/* =========================
+   게임화면
+========================= */
 
-  padding: 5px 10px;
+#game{
 
-  font-size: 13px;
+  display:none;
 
-  border: none;
+  width:100vw;
+  height:100vh;
 
-  border-radius: 6px;
+  overflow:hidden;
 
-  cursor: pointer;
+  box-sizing:border-box;
+
+  padding:2px;
 }
 
-/* ========================= */
-/* 게임 */
-/* ========================= */
+/* =========================
+   상태
+========================= */
 
-#game {
+#topBar{
 
-  display: none;
+  display:flex;
 
-  width: 100%;
+  justify-content:space-between;
+  align-items:center;
 
-  height: 100%;
+  font-size:13px;
 
-  box-sizing: border-box;
-
-  padding: 2px;
+  margin-bottom:2px;
 }
 
-/* ========================= */
-/* 상단 */
-/* ========================= */
+.smallBtn{
 
-#topInfo {
+  font-size:11px;
 
-  display: flex;
+  padding:2px 6px;
 
-  justify-content: space-between;
-
-  align-items: center;
-
-  margin-bottom: 3px;
-
-  padding: 0 2px;
+  border:none;
+  border-radius:5px;
 }
 
-#topInfo h3 {
+/* =========================
+   섹션
+========================= */
 
-  margin: 0;
+.section{
 
-  font-size: 14px;
+  margin-bottom:5px;
 }
 
-/* ========================= */
-/* 영역 */
-/* ========================= */
+.sectionTitle{
 
-.section {
+  font-size:12px;
 
-  margin-bottom: 6px;
+  margin-bottom:1px;
 
-  border: 1px solid rgba(255,255,255,0.25);
-
-  border-radius: 6px;
-
-  padding: 2px;
+  font-weight:bold;
 }
 
-.sectionTitle {
+/* =========================
+   카드줄
+========================= */
 
-  margin: 0 0 1px 0;
+.cardRow{
 
-  font-size: 13px;
+  display:flex;
 
-  font-weight: bold;
+  flex-wrap:nowrap;
+
+  gap:1px;
+
+  min-height:58px;
+
+  overflow:hidden;
 }
 
-/* ========================= */
-/* 줄 */
-/* ========================= */
+/* =========================
+   먹은패 전용 3줄
+========================= */
 
-.cardRow {
+.captureRow{
 
-  display: flex;
+  display:flex;
 
-  flex-wrap: nowrap;
+  flex-wrap:nowrap;
 
-  align-items: center;
+  gap:1px;
 
-  gap: 1px;
+  min-height:42px;
 
-  min-height: 34px;
+  margin-bottom:1px;
 
-  overflow: hidden;
-
-  margin-bottom: 1px;
+  overflow:hidden;
 }
 
-/* ========================= */
-/* 카드 */
-/* ========================= */
+/* =========================
+   카드
+========================= */
 
-img {
+img{
 
-  width: 52px;
+  width:48px;
 
-  user-select: none;
+  height:auto;
 
-  -webkit-user-drag: none;
+  object-fit:contain;
 
-  touch-action: manipulation;
+  border-radius:4px;
 }
 
-/* 먹은패 */
+/* =========================
+   2인용 / 3인용
+========================= */
 
-.captureCard {
+body.twoPlayer img,
+body.threePlayer img{
 
-  width: 28px;
+  width:54px;
 }
 
-/* 상대 패 */
+/* =========================
+   모바일
+========================= */
 
-.backCard {
+@media (max-width:700px){
 
-  width: 40px;
-}
+  #game{
 
-/* ========================= */
-/* 하단 버튼 */
-/* ========================= */
-
-#bottomButtons {
-
-  position: fixed;
-
-  right: 4px;
-
-  bottom: 4px;
-
-  z-index: 999;
-}
-
-#bottomButtons button {
-
-  padding: 3px 6px;
-
-  font-size: 11px;
-}
-
-/* ========================= */
-/* 모바일 */
-/* ========================= */
-
-@media (max-width: 700px) {
-
-  #topInfo h3 {
-
-    font-size: 11px;
+    padding:1px;
   }
 
-  .sectionTitle {
+  .section{
 
-    font-size: 11px;
+    margin-bottom:3px;
   }
 
-  img {
+  .sectionTitle{
 
-    width: 39px;
+    font-size:11px;
+
+    margin-bottom:0;
   }
 
-  .captureCard {
+  img{
 
-    width: 21px;
+    width:18vw;
+
+    max-width:72px;
   }
 
-  .backCard {
+  body.twoPlayer img{
 
-    width: 30px;
+    width:21vw;
+    max-width:86px;
   }
 
-  .cardRow {
+  body.threePlayer img{
 
-    min-height: 24px;
+    width:18vw;
+    max-width:74px;
   }
 
-  #roomInput {
+  #topBar{
 
-    width: 140px;
+    font-size:11px;
+  }
 
-    font-size: 18px;
+  .smallBtn{
+
+    font-size:10px;
+
+    padding:1px 5px;
+  }
+
+  .cardRow{
+
+    min-height:20vw;
+  }
+
+  .captureRow{
+
+    min-height:14vw;
   }
 }
 
 </style>
-
 </head>
 
 <body>
 
-<div id="wrap">
+<!-- =====================
+     로비
+===================== -->
 
-  <!-- ========================= -->
-  <!-- 입장 -->
-  <!-- ========================= -->
+<div id="lobby">
 
-  <div id="lobby">
+  <input
+    id="roomInput"
+    placeholder="방번호"
+    maxlength="3"
+  />
 
-    <input
-      id="roomInput"
-      maxlength="3"
-      placeholder="방번호 123"
+  <button onclick="joinRoom()">
+    참가
+  </button>
+
+  <button onclick="playWithBot()">
+    컴퓨터 대결
+  </button>
+
+</div>
+
+<!-- =====================
+     게임
+===================== -->
+
+<div id="game">
+
+  <!-- 상태 -->
+
+  <div id="topBar">
+
+    <div id="turn">
+      대기중...
+    </div>
+
+    <div id="deck">
+      남은패 : 0
+    </div>
+
+    <button
+      class="smallBtn"
+      onclick="leaveGame()"
     >
-
-    <button onclick="joinRoom()">
-      참가하기
-    </button>
-
-    <button onclick="playWithBot()">
-      컴퓨터 대결
-    </button>
-
-  </div>
-
-  <!-- ========================= -->
-  <!-- 게임 -->
-  <!-- ========================= -->
-
-  <div id="game">
-
-    <!-- 상단 -->
-
-    <div id="topInfo">
-
-      <h3 id="turn">
-        대기중...
-      </h3>
-
-      <h3 id="deck">
-        남은패 : 0
-      </h3>
-
-      <h3 id="winner"></h3>
-
-    </div>
-
-    <!-- ========================= -->
-    <!-- 상대 먹은패 -->
-    <!-- ========================= -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        상대 먹은패
-      </div>
-
-      <div id="enemyBright" class="cardRow"></div>
-
-      <div id="enemyAnimal" class="cardRow"></div>
-
-      <div id="enemyRibbon" class="cardRow"></div>
-
-      <div id="enemyJunk" class="cardRow"></div>
-
-    </div>
-
-    <!-- ========================= -->
-    <!-- 상대 패 -->
-    <!-- ========================= -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        상대 패
-      </div>
-
-      <div id="enemyHand" class="cardRow"></div>
-
-    </div>
-
-    <!-- ========================= -->
-    <!-- 바닥패 -->
-    <!-- ========================= -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        바닥패
-      </div>
-
-      <div id="table" class="cardRow"></div>
-
-    </div>
-
-    <!-- ========================= -->
-    <!-- 내 패 -->
-    <!-- ========================= -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        내 패
-      </div>
-
-      <div id="hand" class="cardRow"></div>
-
-    </div>
-
-    <!-- ========================= -->
-    <!-- 내가 먹은패 -->
-    <!-- ========================= -->
-
-    <div class="section">
-
-      <div class="sectionTitle">
-        내가 먹은패
-      </div>
-
-      <div id="myBright" class="cardRow"></div>
-
-      <div id="myAnimal" class="cardRow"></div>
-
-      <div id="myRibbon" class="cardRow"></div>
-
-      <div id="myJunk" class="cardRow"></div>
-
-    </div>
-
-  </div>
-
-  <!-- ========================= -->
-  <!-- 나가기 -->
-  <!-- ========================= -->
-
-  <div id="bottomButtons">
-
-    <button onclick="leaveGame()">
       나가기
     </button>
 
   </div>
 
+  <!-- 상대 먹은패 -->
+
+  <div class="section">
+
+    <div class="sectionTitle">
+      상대 먹은패
+    </div>
+
+    <!-- 1줄 -->
+    <div
+      class="captureRow"
+      id="enemyBrightAnimal"
+    ></div>
+
+    <!-- 2줄 -->
+    <div
+      class="captureRow"
+      id="enemyRibbon"
+    ></div>
+
+    <!-- 3줄 -->
+    <div
+      class="captureRow"
+      id="enemyJunk"
+    ></div>
+
+  </div>
+
+  <!-- 상대 패 -->
+
+  <div class="section">
+
+    <div class="sectionTitle">
+      상대패
+    </div>
+
+    <div
+      class="cardRow"
+      id="enemyHand"
+    ></div>
+
+  </div>
+
+  <!-- 바닥패 -->
+
+  <div class="section">
+
+    <div class="sectionTitle">
+      바닥패
+    </div>
+
+    <div
+      class="cardRow"
+      id="table"
+    ></div>
+
+  </div>
+
+  <!-- 내 패 -->
+
+  <div class="section">
+
+    <div class="sectionTitle">
+      내패
+    </div>
+
+    <div
+      class="cardRow"
+      id="hand"
+    ></div>
+
+  </div>
+
+  <!-- 내 먹은패 -->
+
+  <div class="section">
+
+    <div class="sectionTitle">
+      내가 먹은패
+    </div>
+
+    <!-- 1줄 -->
+    <div
+      class="captureRow"
+      id="myBrightAnimal"
+    ></div>
+
+    <!-- 2줄 -->
+    <div
+      class="captureRow"
+      id="myRibbon"
+    ></div>
+
+    <!-- 3줄 -->
+    <div
+      class="captureRow"
+      id="myJunk"
+    ></div>
+
+  </div>
+
+  <div id="winner"></div>
+
 </div>
 
-<script src="https://gostop-server.onrender.com/socket.io/socket.io.js"></script>
-
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="app.js"></script>
 
 </body>
-
 </html>
