@@ -58,9 +58,10 @@ function joinRoom() {
   bgm.play();
 
   const roomId =
-    Number(
-      document.getElementById("roomInput").value
-    );
+    document
+      .getElementById("roomInput")
+      .value
+      .trim();
 
   if (!roomId) return;
 
@@ -68,10 +69,12 @@ function joinRoom() {
     roomId
   });
 
-  document.getElementById("lobby")
+  document
+    .getElementById("lobby")
     .style.display = "none";
 
-  document.getElementById("game")
+  document
+    .getElementById("game")
     .style.display = "block";
 }
 
@@ -86,20 +89,21 @@ function playWithBot() {
   bgm.play();
 
   const roomId =
-    Math.floor(100 + Math.random() * 900);
-
-  document.getElementById("roomInput")
-    .value = roomId;
+    Math.floor(
+      100 + Math.random() * 900
+    ).toString();
 
   socket.emit("joinRoom", {
     roomId,
     bot: true
   });
 
-  document.getElementById("lobby")
+  document
+    .getElementById("lobby")
     .style.display = "none";
 
-  document.getElementById("game")
+  document
+    .getElementById("game")
     .style.display = "block";
 }
 
@@ -120,41 +124,27 @@ socket.on("stateUpdate", (s) => {
 
   state = s;
 
-  console.log("state:", state);
-  console.log("myId:", myId);
-
   renderEnemyHand();
   renderTable();
   renderHand();
   renderCaptured();
 
-  // =====================
-  // 턴 표시
-  // =====================
-
-  let isMyTurn = false;
-
-  if (
-    state.turn &&
-    myId &&
+  const isMyTurn =
     String(state.turn)
-      ===
-    String(myId)
-  ) {
-    isMyTurn = true;
-  }
+    ===
+    String(myId);
 
-  document.getElementById("turn")
+  // 턴 표시
+  document
+    .getElementById("turn")
     .innerText =
       isMyTurn
         ? "🟢 내 턴"
         : "⏳ 상대 턴";
 
-  // =====================
   // 남은패
-  // =====================
-
-  document.getElementById("deck")
+  document
+    .getElementById("deck")
     .innerText =
       "남은패 : " +
       (
@@ -163,10 +153,7 @@ socket.on("stateUpdate", (s) => {
           : 0
       );
 
-  // =====================
   // 효과음
-  // =====================
-
   if (isMyTurn) {
 
     turnSound.currentTime = 0;
@@ -181,10 +168,7 @@ socket.on("stateUpdate", (s) => {
     captureSound.play();
   }
 
-  // =====================
   // 승패
-  // =====================
-
   if (state.winner) {
 
     if (
@@ -195,21 +179,24 @@ socket.on("stateUpdate", (s) => {
 
       winSound.play();
 
-      document.getElementById("winner")
+      document
+        .getElementById("winner")
         .innerText = "승리!";
 
     } else if (
       state.winner === "draw"
     ) {
 
-      document.getElementById("winner")
+      document
+        .getElementById("winner")
         .innerText = "무승부";
 
     } else {
 
       loseSound.play();
 
-      document.getElementById("winner")
+      document
+        .getElementById("winner")
         .innerText = "패배";
     }
   }
@@ -222,22 +209,23 @@ socket.on("stateUpdate", (s) => {
 function renderEnemyHand() {
 
   const enemyHand =
-    document.getElementById("enemyHand");
+    document.getElementById(
+      "enemyHand"
+    );
 
-  if (!enemyHand) return;
+  if (!enemyHand || !state)
+    return;
 
   enemyHand.innerHTML = "";
 
-  const players =
-    state.players || [];
-
   const enemy =
-    players.find(
-      p =>
-        String(p)
-        !==
-        String(myId)
-    );
+    (state.players || [])
+      .find(
+        p =>
+          String(p)
+          !==
+          String(myId)
+      );
 
   if (!enemy) return;
 
@@ -266,22 +254,26 @@ function renderEnemyHand() {
 function renderTable() {
 
   const table =
-    document.getElementById("table");
+    document.getElementById(
+      "table"
+    );
 
-  if (!table) return;
+  if (!table || !state)
+    return;
 
   table.innerHTML = "";
 
-  (state.table || []).forEach(card => {
+  (state.table || [])
+    .forEach(card => {
 
-    const img =
-      document.createElement("img");
+      const img =
+        document.createElement("img");
 
-    img.src =
-      "cards/" + card;
+      img.src =
+        "cards/" + card;
 
-    table.appendChild(img);
-  });
+      table.appendChild(img);
+    });
 }
 
 // =========================
@@ -291,9 +283,12 @@ function renderTable() {
 function renderHand() {
 
   const handDiv =
-    document.getElementById("hand");
+    document.getElementById(
+      "hand"
+    );
 
-  if (!handDiv) return;
+  if (!handDiv || !state)
+    return;
 
   handDiv.innerHTML = "";
 
@@ -310,11 +305,11 @@ function renderHand() {
     const img =
       document.createElement("img");
 
-    // encodeURIComponent 제거
+    // 이미지 깨짐 수정
     img.src =
-      "cards/" + card;
+      "./cards/" + card;
 
-    // 상대 턴일 때만 약간 어둡게
+    // 상대 턴
     if (!isMyTurn) {
 
       img.style.filter =
@@ -353,7 +348,7 @@ function renderCaptured() {
 
   clearCaptured();
 
-  if (!state.captured)
+  if (!state?.captured)
     return;
 
   Object.keys(state.captured)
@@ -377,7 +372,7 @@ function renderCaptured() {
           document.createElement("img");
 
         img.src =
-          "cards/" + card;
+          "./cards/" + card;
 
         img.className =
           "captureCard";
@@ -388,7 +383,7 @@ function renderCaptured() {
 }
 
 // =========================
-// 먹은패 초기화
+// 초기화
 // =========================
 
 function clearCaptured() {
@@ -436,7 +431,10 @@ function getCardType(card) {
 // 먹은패 위치
 // =========================
 
-function getCaptureRow(playerId, card) {
+function getCaptureRow(
+  playerId,
+  card
+) {
 
   const mine =
     String(playerId)
