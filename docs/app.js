@@ -113,23 +113,36 @@ function leaveGame() {
 }
 
 // =========================
-// 상태 업데이트
+// 상태 수신
 // =========================
 
 socket.on("stateUpdate", (s) => {
 
   state = s;
 
-  console.log("현재 state:", state);
+  console.log("state:", state);
+  console.log("myId:", myId);
 
   renderEnemyHand();
   renderTable();
   renderHand();
   renderCaptured();
 
+  // =====================
   // 턴 표시
-  const isMyTurn =
-    state.turn === myId;
+  // =====================
+
+  let isMyTurn = false;
+
+  if (
+    state.turn &&
+    myId &&
+    String(state.turn)
+      ===
+    String(myId)
+  ) {
+    isMyTurn = true;
+  }
 
   document.getElementById("turn")
     .innerText =
@@ -137,13 +150,23 @@ socket.on("stateUpdate", (s) => {
         ? "🟢 내 턴"
         : "⏳ 상대 턴";
 
+  // =====================
   // 남은패
+  // =====================
+
   document.getElementById("deck")
     .innerText =
       "남은패 : " +
-      (state.deck?.length || 0);
+      (
+        state.deck
+          ? state.deck.length
+          : 0
+      );
 
-  // 턴 효과음
+  // =====================
+  // 효과음
+  // =====================
+
   if (isMyTurn) {
 
     turnSound.currentTime = 0;
@@ -151,7 +174,6 @@ socket.on("stateUpdate", (s) => {
     turnSound.play();
   }
 
-  // 먹기 효과음
   if (state.lastCapture) {
 
     captureSound.currentTime = 0;
@@ -159,10 +181,17 @@ socket.on("stateUpdate", (s) => {
     captureSound.play();
   }
 
+  // =====================
   // 승패
+  // =====================
+
   if (state.winner) {
 
-    if (state.winner === myId) {
+    if (
+      String(state.winner)
+      ===
+      String(myId)
+    ) {
 
       winSound.play();
 
@@ -204,7 +233,10 @@ function renderEnemyHand() {
 
   const enemy =
     players.find(
-      p => p !== myId
+      p =>
+        String(p)
+        !==
+        String(myId)
     );
 
   if (!enemy) return;
@@ -269,29 +301,32 @@ function renderHand() {
     state.hands?.[myId] || [];
 
   const isMyTurn =
-    state.turn === myId;
+    String(state.turn)
+    ===
+    String(myId);
 
   myHand.forEach(card => {
 
     const img =
       document.createElement("img");
 
-    // 이미지 깨짐 방지
+    // encodeURIComponent 제거
     img.src =
-      "cards/" +
-      encodeURIComponent(card);
+      "cards/" + card;
 
-    // 상대턴일때만 살짝 어둡게
+    // 상대 턴일 때만 약간 어둡게
     if (!isMyTurn) {
 
       img.style.filter =
-        "brightness(65%)";
+        "brightness(75%)";
     }
 
     img.onclick = () => {
 
       if (
-        state.turn !== myId
+        String(state.turn)
+        !==
+        String(myId)
       ) {
         return;
       }
@@ -342,8 +377,7 @@ function renderCaptured() {
           document.createElement("img");
 
         img.src =
-          "cards/" +
-          encodeURIComponent(card);
+          "cards/" + card;
 
         img.className =
           "captureCard";
@@ -354,7 +388,7 @@ function renderCaptured() {
 }
 
 // =========================
-// 초기화
+// 먹은패 초기화
 // =========================
 
 function clearCaptured() {
@@ -405,7 +439,9 @@ function getCardType(card) {
 function getCaptureRow(playerId, card) {
 
   const mine =
-    playerId === myId;
+    String(playerId)
+    ===
+    String(myId);
 
   const type =
     getCardType(card);
