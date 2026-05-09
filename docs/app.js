@@ -25,9 +25,11 @@ function joinRoom(){
   document.getElementById("lobby").style.display = "none";
 
   /* 핵심 수정 */
-  document
-    .getElementById("game")
-    .classList.add("show");
+  const game =
+    document.getElementById("game");
+
+  game.style.display = "flex";
+  game.style.flexDirection = "column";
 }
 
 /* =========================
@@ -48,9 +50,11 @@ function playWithBot(){
   document.getElementById("lobby").style.display = "none";
 
   /* 핵심 수정 */
-  document
-    .getElementById("game")
-    .classList.add("show");
+  const game =
+    document.getElementById("game");
+
+  game.style.display = "flex";
+  game.style.flexDirection = "column";
 }
 
 /* =========================
@@ -157,6 +161,8 @@ function makeImage(card){
     document.createElement("img");
 
   img.src = cardImage(card);
+
+  img.draggable = false;
 
   return img;
 }
@@ -309,7 +315,7 @@ socket.on("gameState",(state)=>{
     myTurn
   );
 
-  /* 상대 찾기 */
+  /* 상대 */
 
   const enemyId =
     Object.keys(state.hands || {})
