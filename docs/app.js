@@ -1,510 +1,362 @@
-const socket = io(
-  "https://gostop-server.onrender.com",
-  {
-    transports: ["websocket"]
-  }
-);
+const socket = io();
 
-let state = null;
 let myId = null;
+let currentRoom = null;
+let isBotGame = false;
 
-// =========================
-// 사운드
-// =========================
+/* =========================
+   참가
+========================= */
 
-const cardSound =
-  new Audio("cards/sounds/card.mp3");
+function joinRoom(){
 
-const captureSound =
-  new Audio("cards/sounds/capture.mp3");
-
-const turnSound =
-  new Audio("cards/sounds/turn.mp3");
-
-const winSound =
-  new Audio("cards/sounds/win.mp3");
-
-const loseSound =
-  new Audio("cards/sounds/lose.mp3");
-
-const buttonSound =
-  new Audio("cards/sounds/button.mp3");
-
-const bgm =
-  new Audio("cards/sounds/bgm.mp3");
-
-bgm.loop = true;
-bgm.volume = 0.3;
-
-// =========================
-// 연결
-// =========================
-
-socket.on("connect", () => {
-
-  myId = socket.id;
-
-  console.log("내 아이디:", myId);
-});
-
-// =========================
-// 참가
-// =========================
-
-function joinRoom() {
-
-  buttonSound.play();
-
-  bgm.play();
-
-  const roomId =
+  const room =
     document
       .getElementById("roomInput")
       .value
       .trim();
 
-  if (!roomId) return;
+  if(!room) return;
 
-  socket.emit("joinRoom", {
-    roomId
-  });
+  currentRoom = room;
 
-  document
-    .getElementById("lobby")
-    .style.display = "none";
+  socket.emit("joinRoom", room);
 
-  document
-    .getElementById("game")
-    .style.display = "flex";
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game").style.display = "flex";
 }
 
-// =========================
-// 컴퓨터 대결
-// =========================
+/* =========================
+   컴퓨터 대결
+========================= */
 
-function playWithBot() {
+function playWithBot(){
 
-  buttonSound.play();
+  const room =
+    "bot_" + Date.now();
 
-  bgm.play();
+  currentRoom = room;
 
-  const roomId =
-    Math.floor(
-      100 + Math.random() * 900
-    ).toString();
+  isBotGame = true;
 
-  socket.emit("joinRoom", {
-    roomId,
-    bot: true
-  });
+  socket.emit("playWithBot", room);
 
-  document
-    .getElementById("lobby")
-    .style.display = "none";
-
-  document
-    .getElementById("game")
-    .style.display = "flex";
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game").style.display = "flex";
 }
 
-// =========================
-// 나가기
-// =========================
+/* =========================
+   다시 시작
+========================= */
 
-function leaveGame() {
+function restartGame(){
+
+  if(!currentRoom) return;
+
+  socket.emit(
+    "restartGame",
+    currentRoom
+  );
+}
+
+/* =========================
+   나가기
+========================= */
+
+function leaveGame(){
 
   location.reload();
 }
 
-// =========================
-// 상태 수신
-// =========================
+/* =========================
+   카드 이미지
+========================= */
 
-socket.on("stateUpdate", (s) => {
+function cardImage(card){
 
-  state = s;
+  return `cards/${card}`;
+}
 
-  renderEnemyHand();
-  renderTable();
-  renderHand();
-  renderCaptured();
+/* =========================
+   카드 분류
+========================= */
 
-  const isMyTurn =
-    String(state.turn)
-    ===
-    String(myId);
+function getType(card){
 
-  // 턴 표시
-  document
-    .getElementById("turn")
-    .innerText =
-      isMyTurn
-        ? "🟢 내 턴"
-        : "⏳ 상대 턴";
+  if(card.includes("bright")){
 
-  // 남은패
-  document
-    .getElementById("deck")
-    .innerText =
-      "남은패 : " +
-      (
-        state.deck
-          ? state.deck.length
-          : 0
-      );
-
-  // 효과음
-  if (isMyTurn) {
-
-    turnSound.currentTime = 0;
-
-    turnSound.play();
+    return "bright";
   }
 
-  if (state.lastCapture) {
+  if(card.includes("animal")){
 
-    captureSound.currentTime = 0;
-
-    captureSound.play();
+    return "animal";
   }
 
-  // 승패
-  if (state.winner) {
+  if(card.includes("ribbon")){
 
-    if (
-      String(state.winner)
-      ===
-      String(myId)
-    ) {
+    return "ribbon";
+  }
 
-      winSound.play();
+  return "junk";
+}
 
-      document
-        .getElementById("winner")
-        .innerText = "승리!";
+/* =========================
+   카드 번호
+========================= */
 
-    } else if (
-      state.winner === "draw"
-    ) {
+function getMonth(card){
 
-      document
-        .getElementById("winner")
-        .innerText = "무승부";
+  return parseInt(
+    card.split("_")[0]
+  ) || 99;
+}
 
-    } else {
+/* =========================
+   정렬
+========================= */
 
-      loseSound.play();
+function sortCards(cards){
 
-      document
-        .getElementById("winner")
-        .innerText = "패배";
+  return [...cards].sort((a,b)=>{
+
+    const order = {
+      bright:0,
+      animal:1,
+      ribbon:2,
+      junk:3
+    };
+
+    const ta = order[getType(a)];
+    const tb = order[getType(b)];
+
+    if(ta !== tb){
+
+      return ta - tb;
     }
-  }
-});
 
-// =========================
-// 상대 패
-// =========================
+    return getMonth(a)-getMonth(b);
+  });
+}
 
-function renderEnemyHand() {
+/* =========================
+   이미지 생성
+========================= */
 
-  const enemyHand =
-    document.getElementById(
-      "enemyHand"
+function makeImage(card){
+
+  const img =
+    document.createElement("img");
+
+  img.src = cardImage(card);
+
+  return img;
+}
+
+/* =========================
+   줄 렌더
+========================= */
+
+function renderRow(id,cards){
+
+  const el =
+    document.getElementById(id);
+
+  el.innerHTML = "";
+
+  cards.forEach(card=>{
+
+    el.appendChild(
+      makeImage(card)
     );
+  });
+}
 
-  if (!enemyHand || !state)
-    return;
+/* =========================
+   먹은패 렌더
+========================= */
 
-  enemyHand.innerHTML = "";
+function renderCaptured(id1,id2,id3,cards){
+
+  cards = sortCards(cards);
+
+  const brightAnimal = [];
+  const ribbon = [];
+  const junk = [];
+
+  cards.forEach(card=>{
+
+    const type =
+      getType(card);
+
+    if(
+      type==="bright" ||
+      type==="animal"
+    ){
+
+      brightAnimal.push(card);
+    }
+    else if(type==="ribbon"){
+
+      ribbon.push(card);
+    }
+    else{
+
+      junk.push(card);
+    }
+  });
+
+  renderRow(id1,brightAnimal);
+  renderRow(id2,ribbon);
+  renderRow(id3,junk);
+}
+
+/* =========================
+   내패 렌더
+========================= */
+
+function renderHand(cards,myTurn){
+
+  const hand =
+    document.getElementById("hand");
+
+  hand.innerHTML = "";
+
+  cards.forEach(card=>{
+
+    const img =
+      makeImage(card);
+
+    /* 내 턴일때만 클릭 가능 */
+
+    if(myTurn){
+
+      img.onclick = ()=>{
+
+        socket.emit(
+          "playCard",
+          {
+            room:currentRoom,
+            card
+          }
+        );
+      };
+    }
+
+    hand.appendChild(img);
+  });
+}
+
+/* =========================
+   상대패
+========================= */
+
+function renderEnemyHand(count){
 
   const enemy =
-    (state.players || [])
-      .find(
-        p =>
-          String(p)
-          !==
-          String(myId)
-      );
+    document.getElementById("enemyHand");
 
-  if (!enemy) return;
+  enemy.innerHTML = "";
 
-  const enemyCards =
-    state.hands?.[enemy] || [];
-
-  enemyCards.forEach(() => {
+  for(let i=0;i<count;i++){
 
     const img =
-      document.createElement("img");
+      makeImage("0-back.png");
 
-    img.src =
-      "cards/0-back.png";
-
-    img.className =
-      "backCard";
-
-    enemyHand.appendChild(img);
-  });
-}
-
-// =========================
-// 바닥패
-// =========================
-
-function renderTable() {
-
-  const table =
-    document.getElementById(
-      "table"
-    );
-
-  if (!table || !state)
-    return;
-
-  table.innerHTML = "";
-
-  (state.table || [])
-    .forEach(card => {
-
-      const img =
-        document.createElement("img");
-
-      // 핵심 수정
-      img.src =
-        "cards/" + card;
-
-      table.appendChild(img);
-    });
-}
-
-// =========================
-// 내 패
-// =========================
-
-function renderHand() {
-
-  const handDiv =
-    document.getElementById(
-      "hand"
-    );
-
-  if (!handDiv || !state)
-    return;
-
-  handDiv.innerHTML = "";
-
-  const myHand =
-    state.hands?.[myId] || [];
-
-  const isMyTurn =
-    String(state.turn)
-    ===
-    String(myId);
-
-  myHand.forEach(card => {
-
-    const img =
-      document.createElement("img");
-
-    // 핵심 수정
-    img.src =
-      "cards/" + card;
-
-    // 이미지 깨짐 방지
-    img.onerror = () => {
-
-      console.log(
-        "이미지 없음:",
-        card
-      );
-
-      img.src =
-        "cards/0-back.png";
-    };
-
-    // 상대 턴이면 어둡게
-    if (!isMyTurn) {
-
-      img.style.filter =
-        "brightness(75%)";
-    }
-
-    img.onclick = () => {
-
-      if (
-        String(state.turn)
-        !==
-        String(myId)
-      ) {
-        return;
-      }
-
-      cardSound.currentTime = 0;
-
-      cardSound.play();
-
-      socket.emit("playCard", {
-        roomId: state.roomId,
-        card
-      });
-    };
-
-    handDiv.appendChild(img);
-  });
-}
-
-// =========================
-// 먹은패
-// =========================
-
-function renderCaptured() {
-
-  clearCaptured();
-
-  if (!state?.captured)
-    return;
-
-  Object.keys(state.captured)
-    .forEach(playerId => {
-
-      const cards =
-        state.captured[playerId];
-
-
-cards.sort((a, b) => {
-
-  function typeOrder(card){
-
-    if(card.includes("bright")) return 0;
-
-    if(card.includes("animal")) return 1;
-
-    if(card.includes("ribbon")) return 2;
-
-    return 3;
+    enemy.appendChild(img);
   }
-
-  const ta = typeOrder(a);
-  const tb = typeOrder(b);
-
-  if(ta !== tb){
-
-    return ta - tb;
-  }
-
-  const ma =
-    parseInt(a.split("_")[0]) || 99;
-
-  const mb =
-    parseInt(b.split("_")[0]) || 99;
-
-  return ma - mb;
-});
-      
-
-      cards.forEach(card => {
-
-        const row =
-          getCaptureRow(
-            playerId,
-            card
-          );
-
-        if (!row)
-          return;
-
-        const img =
-          document.createElement("img");
-
-        // 핵심 수정
-        img.src =
-          "cards/" + card;
-
-        img.onerror = () => {
-
-          img.src =
-            "cards/0-back.png";
-        };
-
-        img.className =
-          "captureCard";
-
-        row.appendChild(img);
-      });
-    });
 }
 
-// =========================
-// 초기화
-// =========================
+/* =========================
+   게임 상태
+========================= */
 
-function clearCaptured() {
+socket.on("gameState",(state)=>{
 
-  [
+  myId = socket.id;
+
+  const myTurn =
+    state.turn === myId;
+
+  /* 턴 */
+
+  document.getElementById("turn").innerHTML =
+    myTurn
+      ? "🟢 내 턴"
+      : "⏳ 상대 턴";
+
+  /* 남은패 */
+
+  document.getElementById("deck").innerHTML =
+    `남은패 : ${state.deck.length}`;
+
+  /* 내패 */
+
+  renderHand(
+    state.hands[myId] || [],
+    myTurn
+  );
+
+  /* 상대패 */
+
+  const enemyId =
+    Object.keys(state.hands)
+      .find(id=>id!==myId);
+
+  const enemyCount =
+    enemyId
+      ? state.hands[enemyId].length
+      : 0;
+
+  renderEnemyHand(enemyCount);
+
+  /* 바닥패 */
+
+  renderRow(
+    "table",
+    state.table || []
+  );
+
+  /* 내가 먹은패 */
+
+  renderCaptured(
+    "myBrightAnimal",
+    "myRibbon",
+    "myJunk",
+    state.captured[myId] || []
+  );
+
+  /* 상대 먹은패 */
+
+  renderCaptured(
     "enemyBrightAnimal",
     "enemyRibbon",
     "enemyJunk",
-
-    "myBrightAnimal",
-    "myRibbon",
-    "myJunk"
-  ]
-  .forEach(id => {
-
-    const el =
-      document.getElementById(id);
-
-    if (el)
-      el.innerHTML = "";
-  });
-}
-
-// =========================
-// 카드 종류
-// =========================
-
-function getCardType(card) {
-
-  if (
-    card.includes("bright")
-    ||
-    card.includes("animal")
-  ) {
-    return "BrightAnimal";
-  }
-
-  if (
-    card.includes("ribbon")
-  ) {
-    return "Ribbon";
-  }
-
-  return "Junk";
-}
-
-// =========================
-// 먹은패 위치
-// =========================
-
-function getCaptureRow(
-  playerId,
-  card
-) {
-
-  const mine =
-    String(playerId)
-    ===
-    String(myId);
-
-  const type =
-    getCardType(card);
-
-  const prefix =
-    mine
-      ? "my"
-      : "enemy";
-
-  return document.getElementById(
-    prefix + type
+    enemyId
+      ? state.captured[enemyId] || []
+      : []
   );
-}
+});
+
+/* =========================
+   게임 종료
+========================= */
+
+socket.on("gameOver",(msg)=>{
+
+  alert(msg);
+});
+
+/* =========================
+   재시작
+========================= */
+
+socket.on("restartGame",()=>{
+
+  socket.emit(
+    isBotGame
+      ? "playWithBot"
+      : "joinRoom",
+    currentRoom
+  );
+});
