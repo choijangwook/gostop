@@ -1,12 +1,8 @@
-let socket;
+const socket = io();
+
 let myId = null;
 let currentRoom = null;
 let isBotGame = false;
-
-/* =========================
-   socket 초기화 (중요)
-========================= */
-socket = io();
 
 /* =========================
    참가
@@ -15,33 +11,50 @@ socket = io();
 function joinRoom(){
 
   const room =
-    document.getElementById("roomInput").value.trim();
+    document
+      .getElementById("roomInput")
+      .value
+      .trim();
 
   if(!room) return;
 
   currentRoom = room;
 
-  socket.emit("joinRoom", room);
+  socket.emit(
+    "joinRoom",
+    room
+  );
 
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("game").style.display = "flex";
+  document.getElementById("lobby").style.display =
+    "none";
+
+  document.getElementById("game").style.display =
+    "flex";
 }
 
 /* =========================
-   봇
+   컴퓨터 대결
 ========================= */
 
 function playWithBot(){
 
-  const room = "bot_" + Date.now();
+  const room =
+    "bot_" + Date.now();
 
   currentRoom = room;
+
   isBotGame = true;
 
-  socket.emit("playWithBot", room);
+  socket.emit(
+    "playWithBot",
+    room
+  );
 
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("game").style.display = "flex";
+  document.getElementById("lobby").style.display =
+    "none";
+
+  document.getElementById("game").style.display =
+    "flex";
 }
 
 /* =========================
@@ -52,7 +65,10 @@ function restartGame(){
 
   if(!currentRoom) return;
 
-  socket.emit("restartGame", currentRoom);
+  socket.emit(
+    "restartGame",
+    currentRoom
+  );
 }
 
 /* =========================
@@ -60,111 +76,339 @@ function restartGame(){
 ========================= */
 
 function leaveGame(){
+
   location.reload();
 }
 
 /* =========================
-   카드
+   카드 이미지
 ========================= */
 
 function cardImage(card){
+
   return `cards/${card}`;
 }
 
+/* =========================
+   카드 타입
+========================= */
+
 function getType(card){
-  if(card.includes("bright")) return "bright";
-  if(card.includes("animal")) return "animal";
-  if(card.includes("ribbon")) return "ribbon";
+
+  if(card.includes("bright")){
+
+    return "bright";
+  }
+
+  if(card.includes("animal")){
+
+    return "animal";
+  }
+
+  if(card.includes("ribbon")){
+
+    return "ribbon";
+  }
+
   return "junk";
 }
 
+/* =========================
+   월
+========================= */
+
 function getMonth(card){
-  return parseInt(card.split("_")[0]) || 99;
+
+  return parseInt(
+    card.split("_")[0]
+  ) || 99;
 }
 
+/* =========================
+   정렬
+========================= */
+
+function sortCards(cards){
+
+  return [...cards].sort((a,b)=>{
+
+    const order = {
+      bright:0,
+      animal:1,
+      ribbon:2,
+      junk:3
+    };
+
+    const ta =
+      order[getType(a)];
+
+    const tb =
+      order[getType(b)];
+
+    if(ta !== tb){
+
+      return ta - tb;
+    }
+
+    return getMonth(a)
+      - getMonth(b);
+  });
+}
+
+/* =========================
+   이미지 생성
+========================= */
+
 function makeImage(card){
-  const img = document.createElement("img");
-  img.src = cardImage(card);
+
+  const img =
+    document.createElement("img");
+
+  img.src =
+    cardImage(card);
+
   img.draggable = false;
+
+  img.onerror = ()=>{
+
+    console.log(
+      "이미지 로드 실패:",
+      img.src
+    );
+  };
+
   return img;
 }
 
 /* =========================
-   렌더
+   일반 줄
 ========================= */
 
 function renderRow(id,cards){
 
-  const el = document.getElementById(id);
+  const el =
+    document.getElementById(id);
+
   if(!el) return;
 
-  el.innerHTML = "";
-  cards.forEach(c => el.appendChild(makeImage(c)));
-}
-
-function renderHand(cards,myTurn){
-
-  const el = document.getElementById("hand");
   el.innerHTML = "";
 
   cards.forEach(card=>{
 
-    const img = makeImage(card);
-
-    if(myTurn){
-      img.onclick = () => {
-        socket.emit("playCard",{
-          room: currentRoom,
-          card
-        });
-      };
-    }
-
-    el.appendChild(img);
+    el.appendChild(
+      makeImage(card)
+    );
   });
 }
 
+/* =========================
+   먹은패
+========================= */
+
+function renderCaptured(
+  id1,
+  id2,
+  id3,
+  cards
+){
+
+  cards =
+    sortCards(cards);
+
+  const brightAnimal = [];
+  const ribbon = [];
+  const junk = [];
+
+  cards.forEach(card=>{
+
+    const type =
+      getType(card);
+
+    if(
+      type==="bright"
+      ||
+      type==="animal"
+    ){
+
+      brightAnimal.push(card);
+    }
+    else if(type==="ribbon"){
+
+      ribbon.push(card);
+    }
+    else{
+
+      junk.push(card);
+    }
+  });
+
+  renderRow(
+    id1,
+    brightAnimal
+  );
+
+  renderRow(
+    id2,
+    ribbon
+  );
+
+  renderRow(
+    id3,
+    junk
+  );
+}
+
+/* =========================
+   내패
+========================= */
+
+function renderHand(
+  cards,
+  myTurn
+){
+
+  const hand =
+    document.getElementById("hand");
+
+  if(!hand) return;
+
+  hand.innerHTML = "";
+
+  cards.forEach(card=>{
+
+    const img =
+      makeImage(card);
+
+    if(myTurn){
+
+      img.onclick = ()=>{
+
+        socket.emit(
+          "playCard",
+          {
+            room:currentRoom,
+            card
+          }
+        );
+      };
+    }
+
+    hand.appendChild(img);
+  });
+}
+
+/* =========================
+   상대패
+========================= */
+
 function renderEnemyHand(count){
 
-  const el = document.getElementById("enemyHand");
-  el.innerHTML = "";
+  const enemy =
+    document.getElementById("enemyHand");
+
+  if(!enemy) return;
+
+  enemy.innerHTML = "";
 
   for(let i=0;i<count;i++){
-    el.appendChild(makeImage("0-back.png"));
+
+    const img =
+      makeImage("0-back.png");
+
+    enemy.appendChild(img);
   }
 }
 
 /* =========================
-   상태
+   연결
 ========================= */
 
-socket.on("gameState",(state)=>{
+socket.on(
+  "connect",
+  ()=>{
 
-  myId = socket.id;
+    myId = socket.id;
 
-  const myTurn = state.turn === myId;
+    console.log(
+      "socket connected:",
+      myId
+    );
+  }
+);
 
-  document.getElementById("turn").innerText =
-    myTurn ? "🟢 내 턴" : "⏳ 상대 턴";
+/* =========================
+   상태 갱신
+========================= */
 
-  document.getElementById("deck").innerText =
-    `남은패 : ${state.deck.length}`;
+socket.on(
+  "gameState",
+  (state)=>{
 
-  renderHand(state.hands?.[myId] || [], myTurn);
+    if(!state) return;
 
-  const enemyId =
-    Object.keys(state.hands || []).find(id => id !== myId);
+    const myTurn =
+      state.turn === myId;
 
-  renderEnemyHand(enemyId ? state.hands[enemyId].length : 0);
+    document.getElementById("turn").innerHTML =
+      myTurn
+        ? "🟢 내 턴"
+        : "⏳ 상대 턴";
 
-  renderRow("table", state.table || []);
-  renderRow("myBrightAnimal", state.captured?.[myId] || []);
-});
+    document.getElementById("deck").innerHTML =
+      `남은패 : ${state.deck.length}`;
+
+    renderHand(
+      state.hands?.[myId] || [],
+      myTurn
+    );
+
+    const enemyId =
+      Object
+        .keys(state.hands || {})
+        .find(
+          id => id !== myId
+        );
+
+    const enemyCount =
+      enemyId
+        ? state.hands[enemyId].length
+        : 0;
+
+    renderEnemyHand(
+      enemyCount
+    );
+
+    renderRow(
+      "table",
+      state.table || []
+    );
+
+    renderCaptured(
+      "myBrightAnimal",
+      "myRibbon",
+      "myJunk",
+      state.captured?.[myId] || []
+    );
+
+    renderCaptured(
+      "enemyBrightAnimal",
+      "enemyRibbon",
+      "enemyJunk",
+      enemyId
+        ? state.captured?.[enemyId] || []
+        : []
+    );
+  }
+);
 
 /* =========================
    종료
 ========================= */
 
-socket.on("gameOver",(msg)=>{
-  alert(msg);
-});
+socket.on(
+  "gameOver",
+  (msg)=>{
+
+    alert(msg);
+  }
+);
