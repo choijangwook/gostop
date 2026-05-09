@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-
 <meta charset="UTF-8" />
 
 <meta
@@ -25,7 +24,6 @@
 
 html,
 body{
-
   margin:0;
   padding:0;
 
@@ -40,9 +38,9 @@ body{
   font-family:sans-serif;
 }
 
-/* =========================
+/* =====================
    로비
-========================= */
+===================== */
 
 #lobby{
 
@@ -62,7 +60,7 @@ body{
 
   width:120px;
 
-  padding:9px;
+  padding:10px;
 
   border:none;
   border-radius:8px;
@@ -82,9 +80,9 @@ body{
   font-size:14px;
 }
 
-/* =========================
-   게임 전체
-========================= */
+/* =====================
+   게임
+===================== */
 
 #game{
 
@@ -97,13 +95,19 @@ body{
 
   padding:2px;
 
-  display:flex;
   flex-direction:column;
 }
 
-/* =========================
+/* JS 에서 .show 추가 */
+
+#game.show{
+
+  display:flex;
+}
+
+/* =====================
    상단
-========================= */
+===================== */
 
 #topBar{
 
@@ -117,8 +121,6 @@ body{
   font-size:10px;
 
   flex-shrink:0;
-
-  overflow:hidden;
 }
 
 .topButtons{
@@ -137,9 +139,9 @@ body{
   border-radius:4px;
 }
 
-/* =========================
-   공통 섹션
-========================= */
+/* =====================
+   섹션
+===================== */
 
 .section{
 
@@ -152,51 +154,44 @@ body{
 
 .sectionTitle{
 
-  height:10px;
-
-  line-height:10px;
-
   font-size:9px;
 
   font-weight:bold;
+
+  line-height:10px;
 
   margin:0;
 
   opacity:0.92;
 }
 
-/* =========================
-   영역 높이 고정
-========================= */
+/* =====================
+   높이
+===================== */
 
 #enemyCapturedSection{
-
   height:24vh;
 }
 
 #enemyHandSection{
-
   height:11vh;
 }
 
 #tableSection{
-
   height:12vh;
 }
 
 #myHandSection{
-
   height:12vh;
 }
 
 #myCapturedSection{
-
   height:24vh;
 }
 
-/* =========================
-   일반 카드줄
-========================= */
+/* =====================
+   일반 카드
+===================== */
 
 .cardRow{
 
@@ -224,9 +219,9 @@ body{
   flex-shrink:1;
 }
 
-/* =========================
+/* =====================
    먹은패
-========================= */
+===================== */
 
 .captureWrap{
 
@@ -237,8 +232,6 @@ body{
 
   overflow:hidden;
 }
-
-/* 각 줄 */
 
 .captureRow{
 
@@ -251,14 +244,10 @@ body{
   height:33%;
 }
 
-/* 세로 겹침 */
-
 .captureRow + .captureRow{
 
   margin-top:-12px;
 }
-
-/* 카드 */
 
 .captureRow img{
 
@@ -277,33 +266,14 @@ body{
   margin-left:-10px;
 }
 
-/* 첫 카드 */
-
 .captureRow img:first-child{
 
   margin-left:0;
 }
 
-/* 카드 많아질수록 자동 축소 */
-
-.captureRow img:nth-child(n+9){
-
-  width:7vw;
-}
-
-.captureRow img:nth-child(n+13){
-
-  width:6vw;
-}
-
-.captureRow img:nth-child(n+17){
-
-  width:5vw;
-}
-
-/* =========================
+/* =====================
    구분선
-========================= */
+===================== */
 
 .separator{
 
@@ -315,9 +285,9 @@ body{
   flex-shrink:0;
 }
 
-/* =========================
+/* =====================
    PC
-========================= */
+===================== */
 
 @media (min-width:701px){
 
@@ -329,27 +299,22 @@ body{
   }
 
   #enemyCapturedSection{
-
     height:220px;
   }
 
   #enemyHandSection{
-
     height:88px;
   }
 
   #tableSection{
-
     height:96px;
   }
 
   #myHandSection{
-
     height:96px;
   }
 
   #myCapturedSection{
-
     height:220px;
   }
 
@@ -370,33 +335,15 @@ body{
     margin-top:-16px;
   }
 
-  .captureRow img:nth-child(n+9){
-
-    width:35px;
-  }
-
-  .captureRow img:nth-child(n+13){
-
-    width:30px;
-  }
-
-  .captureRow img:nth-child(n+17){
-
-    width:25px;
-  }
-
   #topBar{
-
     font-size:11px;
   }
 
   .sectionTitle{
-
     font-size:10px;
   }
 
   .smallBtn{
-
     font-size:9px;
   }
 }
@@ -406,9 +353,7 @@ body{
 
 <body>
 
-<!-- =====================
-     로비
-===================== -->
+<!-- 로비 -->
 
 <div id="lobby">
 
@@ -428,9 +373,7 @@ body{
 
 </div>
 
-<!-- =====================
-     게임
-===================== -->
+<!-- 게임 -->
 
 <div id="game">
 
@@ -451,7 +394,6 @@ body{
       <button
         class="smallBtn"
         onclick="restartGame()"
-        
       >
         다시 시작
       </button>
