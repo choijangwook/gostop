@@ -1,30 +1,18 @@
 const express = require("express");
 const http = require("http");
-const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
 
 const server = http.createServer(app);
 
-const io = new Server(server,{
-  cors:{
-    origin:"*"
+const io = new Server(server, {
+  cors: {
+    origin: "*"
   }
 });
 
-/* =========================
-   정적 폴더
-========================= */
-
-app.use(
-  express.static(
-    path.join(
-      __dirname,
-      "../docs"
-    )
-  )
-);
+app.use(express.static("../docs"));
 
 /* =========================
    방 목록
@@ -41,7 +29,6 @@ function createDeck(){
   const deck = [];
 
   const cards = [
-
     "1_bright.png",
     "1_ribbon.png",
     "1_junk1.png",
@@ -112,9 +99,7 @@ function createDeck(){
   for(let i=deck.length-1;i>0;i--){
 
     const j =
-      Math.floor(
-        Math.random()*(i+1)
-      );
+      Math.floor(Math.random()*(i+1));
 
     [deck[i],deck[j]] =
       [deck[j],deck[i]];
@@ -130,9 +115,7 @@ function createDeck(){
 function getMonth(card){
 
   const n =
-    parseInt(
-      card.split("_")[0]
-    );
+    parseInt(card.split("_")[0]);
 
   return isNaN(n)
     ? "special"
@@ -157,6 +140,8 @@ function createGame(players){
     captured[id] = [];
   });
 
+  /* 2인 기준 */
+
   const handCount = 10;
 
   players.forEach(id=>{
@@ -173,9 +158,7 @@ function createGame(players){
 
   for(let i=0;i<8;i++){
 
-    table.push(
-      deck.pop()
-    );
+    table.push(deck.pop());
   }
 
   return {
@@ -193,23 +176,17 @@ function createGame(players){
     turn:
       players[
         Math.floor(
-          Math.random()
-          *
-          players.length
+          Math.random()*players.length
         )
       ]
   };
 }
 
 /* =========================
-   카드 플레이
+   카드 먹기
 ========================= */
 
-function playCard(
-  game,
-  playerId,
-  card
-){
+function playCard(game,playerId,card){
 
   if(game.turn !== playerId){
 
@@ -229,7 +206,7 @@ function playCard(
 
   hand.splice(index,1);
 
-  /* special 카드 */
+  /* special */
 
   if(card.includes("special")){
 
@@ -252,10 +229,7 @@ function playCard(
 
     const matchIndex =
       game.table.findIndex(
-        c =>
-          getMonth(c)
-          ===
-          month
+        c => getMonth(c) === month
       );
 
     if(matchIndex !== -1){
@@ -306,10 +280,7 @@ function playCard(
 
       const matchIndex =
         game.table.findIndex(
-          c =>
-            getMonth(c)
-            ===
-            month
+          c => getMonth(c) === month
         );
 
       if(matchIndex !== -1){
@@ -333,12 +304,10 @@ function playCard(
     }
   }
 
-  /* 턴 넘김 */
+  /* 턴 넘기기 */
 
   const current =
-    game.players.indexOf(
-      playerId
-    );
+    game.players.indexOf(playerId);
 
   game.turn =
     game.players[
@@ -347,14 +316,11 @@ function playCard(
       game.players.length
     ];
 
-  /* 종료 */
+  /* 게임 종료 */
 
   const finished =
-    Object.values(
-      game.hands
-    ).every(
-      h => h.length===0
-    );
+    Object.values(game.hands)
+      .every(h=>h.length===0);
 
   if(finished){
 
@@ -364,8 +330,7 @@ function playCard(
     game.players.forEach(id=>{
 
       const score =
-        game.captured[id]
-          .length;
+        game.captured[id].length;
 
       if(score > max){
 
@@ -383,197 +348,156 @@ function playCard(
    연결
 ========================= */
 
-io.on(
-  "connection",
-  (socket)=>{
+io.on("connection",(socket)=>{
 
-    console.log(
-      "connected:",
-      socket.id
+  /* 참가 */
+
+  socket.on("joinRoom",(room)=>{
+
+    socket.join(room);
+
+    if(!rooms[room]){
+
+      rooms[room] = {
+        waiting:true,
+        players:[]
+      };
+    }
+
+    const game =
+      rooms[room];
+
+    /* 중복 제거 */
+
+    game.players =
+      game.players.filter(
+        id => id !== socket.id
+      );
+
+    if(!game.players.includes(socket.id)){
+
+      game.players.push(socket.id);
+    }
+
+    /* 2인 시작 */
+
+    if(game.players.length >= 2){
+
+      const newGame =
+        createGame(game.players);
+
+      rooms[room] = newGame;
+
+      io.to(room).emit(
+        "gameState",
+        newGame
+      );
+    }
+  });
+
+  /* 컴퓨터 대결 */
+
+  socket.on("playWithBot",(room)=>{
+
+    socket.join(room);
+
+    const botId = "BOT";
+
+    const newGame =
+      createGame([
+        socket.id,
+        botId
+      ]);
+
+    rooms[room] = newGame;
+
+    io.to(room).emit(
+      "gameState",
+      newGame
     );
 
-    /* 참가 */
+    /* 봇 턴 */
 
-    socket.on(
-      "joinRoom",
-      (room)=>{
+    handleBot(room);
+  });
 
-        socket.join(room);
+  /* 카드 플레이 */
 
-        if(!rooms[room]){
+  socket.on("playCard",({room,card})=>{
 
-          rooms[room] = {
-            waiting:true,
-            players:[]
-          };
-        }
+    const game =
+      rooms[room];
+
+    if(!game) return;
+
+    playCard(
+      game,
+      socket.id,
+      card
+    );
+
+    io.to(room).emit(
+      "gameState",
+      game
+    );
+
+    if(game.gameOver){
+
+      io.to(room).emit(
+        "gameOver",
+        game.winner === socket.id
+          ? "승리!"
+          : "패배!"
+      );
+
+      return;
+    }
+
+    handleBot(room);
+  });
+
+  /* 다시 시작 */
+
+  socket.on("restartGame",(room)=>{
+
+    const game =
+      rooms[room];
+
+    if(!game) return;
+
+    const players =
+      game.players || [];
+
+    const newGame =
+      createGame(players);
+
+    rooms[room] = newGame;
+
+    io.to(room).emit(
+      "gameState",
+      newGame
+    );
+  });
+
+  /* 연결 종료 */
+
+  socket.on("disconnect",()=>{
+
+    Object.keys(rooms)
+      .forEach(room=>{
 
         const game =
           rooms[room];
+
+        if(!game.players) return;
 
         game.players =
           game.players.filter(
-            id =>
-              id !== socket.id
+            id => id !== socket.id
           );
-
-        if(
-          !game.players.includes(
-            socket.id
-          )
-        ){
-
-          game.players.push(
-            socket.id
-          );
-        }
-
-        if(
-          game.players.length >= 2
-        ){
-
-          const newGame =
-            createGame(
-              game.players
-            );
-
-          rooms[room] =
-            newGame;
-
-          io.to(room).emit(
-            "gameState",
-            newGame
-          );
-        }
-      }
-    );
-
-    /* 컴퓨터 대결 */
-
-    socket.on(
-      "playWithBot",
-      (room)=>{
-
-        socket.join(room);
-
-        const botId =
-          "BOT";
-
-        const newGame =
-          createGame([
-            socket.id,
-            botId
-          ]);
-
-        rooms[room] =
-          newGame;
-
-        io.to(room).emit(
-          "gameState",
-          newGame
-        );
-
-        handleBot(room);
-      }
-    );
-
-    /* 카드 플레이 */
-
-    socket.on(
-      "playCard",
-      ({room,card})=>{
-
-        const game =
-          rooms[room];
-
-        if(!game) return;
-
-        playCard(
-          game,
-          socket.id,
-          card
-        );
-
-        io.to(room).emit(
-          "gameState",
-          game
-        );
-
-        if(game.gameOver){
-
-          io.to(room).emit(
-            "gameOver",
-            game.winner
-            ===
-            socket.id
-              ? "승리!"
-              : "패배!"
-          );
-
-          return;
-        }
-
-        handleBot(room);
-      }
-    );
-
-    /* 다시 시작 */
-
-    socket.on(
-      "restartGame",
-      (room)=>{
-
-        const game =
-          rooms[room];
-
-        if(!game) return;
-
-        const players =
-          game.players || [];
-
-        const newGame =
-          createGame(players);
-
-        rooms[room] =
-          newGame;
-
-        io.to(room).emit(
-          "gameState",
-          newGame
-        );
-      }
-    );
-
-    /* 연결 종료 */
-
-    socket.on(
-      "disconnect",
-      ()=>{
-
-        console.log(
-          "disconnect:",
-          socket.id
-        );
-
-        Object.keys(rooms)
-          .forEach(room=>{
-
-            const game =
-              rooms[room];
-
-            if(!game.players)
-              return;
-
-            game.players =
-              game.players.filter(
-                id =>
-                  id !== socket.id
-              );
-          });
-      }
-    );
-  }
-);
+      });
+  });
+});
 
 /* =========================
    봇
@@ -596,11 +520,7 @@ function handleBot(room){
     const hand =
       game.hands["BOT"];
 
-    if(
-      !hand
-      ||
-      hand.length===0
-    ){
+    if(!hand || hand.length===0){
 
       return;
     }
@@ -623,7 +543,7 @@ function handleBot(room){
 
       io.to(room).emit(
         "gameOver",
-        game.winner==="BOT"
+        game.winner === "BOT"
           ? "컴퓨터 승리!"
           : "당신 승리!"
       );
@@ -636,13 +556,9 @@ function handleBot(room){
    서버 시작
 ========================= */
 
-server.listen(
-  3000,
-  "0.0.0.0",
-  ()=>{
+server.listen(3000,()=>{
 
-    console.log(
-      "server running : 5000"
-    );
-  }
-);
+  console.log(
+    "server running"
+  );
+});
