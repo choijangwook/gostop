@@ -25,7 +25,9 @@ function joinRoom(){
   document.getElementById("lobby").style.display = "none";
 
   /* 핵심 수정 */
-  document.getElementById("game").style.display = "block";
+  document
+    .getElementById("game")
+    .classList.add("show");
 }
 
 /* =========================
@@ -46,8 +48,9 @@ function playWithBot(){
   document.getElementById("lobby").style.display = "none";
 
   /* 핵심 수정 */
-  document.getElementById("game").classList.add("show");
-   
+  document
+    .getElementById("game")
+    .classList.add("show");
 }
 
 /* =========================
@@ -236,8 +239,6 @@ function renderHand(cards,myTurn){
     const img =
       makeImage(card);
 
-    /* 내 턴일때만 클릭 */
-
     if(myTurn){
 
       img.onclick = ()=>{
@@ -279,7 +280,7 @@ function renderEnemyHand(count){
 }
 
 /* =========================
-   게임 상태
+   상태 갱신
 ========================= */
 
 socket.on("gameState",(state)=>{
