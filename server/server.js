@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
@@ -12,7 +13,15 @@ const io = new Server(server, {
   }
 });
 
-app.use(express.static("../docs"));
+/* =========================
+   정적폴더
+========================= */
+
+app.use(
+  express.static(
+    path.join(__dirname,"../docs")
+  )
+);
 
 /* =========================
    방 목록
@@ -29,6 +38,7 @@ function createDeck(){
   const deck = [];
 
   const cards = [
+
     "1_bright.png",
     "1_ribbon.png",
     "1_junk1.png",
@@ -140,8 +150,6 @@ function createGame(players){
     captured[id] = [];
   });
 
-  /* 2인 기준 */
-
   const handCount = 10;
 
   players.forEach(id=>{
@@ -183,7 +191,7 @@ function createGame(players){
 }
 
 /* =========================
-   카드 먹기
+   카드 플레이
 ========================= */
 
 function playCard(game,playerId,card){
@@ -304,7 +312,7 @@ function playCard(game,playerId,card){
     }
   }
 
-  /* 턴 넘기기 */
+  /* 턴 넘김 */
 
   const current =
     game.players.indexOf(playerId);
@@ -316,7 +324,7 @@ function playCard(game,playerId,card){
       game.players.length
     ];
 
-  /* 게임 종료 */
+  /* 종료 */
 
   const finished =
     Object.values(game.hands)
@@ -367,8 +375,6 @@ io.on("connection",(socket)=>{
     const game =
       rooms[room];
 
-    /* 중복 제거 */
-
     game.players =
       game.players.filter(
         id => id !== socket.id
@@ -378,8 +384,6 @@ io.on("connection",(socket)=>{
 
       game.players.push(socket.id);
     }
-
-    /* 2인 시작 */
 
     if(game.players.length >= 2){
 
@@ -415,8 +419,6 @@ io.on("connection",(socket)=>{
       "gameState",
       newGame
     );
-
-    /* 봇 턴 */
 
     handleBot(room);
   });
