@@ -95,12 +95,19 @@ body{
 
   overflow:hidden;
 
-  padding:1px;
+  padding:2px;
 
-  display:flex;
-  flex-direction:column;
+  display:grid;
 
-  justify-content:flex-start;
+  grid-template-rows:
+    22px
+    1fr
+    64px
+    72px
+    72px
+    1fr;
+
+  gap:1px;
 }
 
 /* =========================
@@ -116,11 +123,7 @@ body{
 
   font-size:10px;
 
-  line-height:10px;
-
-  margin-bottom:1px;
-
-  flex-shrink:0;
+  overflow:hidden;
 }
 
 .topButtons{
@@ -145,13 +148,9 @@ body{
 
 .section{
 
-  width:100%;
-
   overflow:hidden;
 
-  margin-bottom:1px;
-
-  flex-shrink:0;
+  min-height:0;
 }
 
 .sectionTitle{
@@ -160,10 +159,9 @@ body{
 
   font-weight:bold;
 
-  line-height:9px;
+  line-height:10px;
 
   margin:0;
-  padding:0;
 
   opacity:0.92;
 }
@@ -179,32 +177,35 @@ body{
   height:1px;
 
   background:
-    rgba(255,255,255,0.18);
-
-  margin:1px 0;
+    rgba(255,255,255,0.15);
 }
 
 /* =========================
-   줄
+   카드 줄
 ========================= */
 
 .cardRow,
 .captureRow{
 
-  width:100%;
-
   display:flex;
 
-  flex-wrap:nowrap;
+  align-items:flex-start;
 
   overflow:hidden;
 
-  gap:0;
+  white-space:nowrap;
+
+  min-width:0;
 }
 
 /* =========================
    일반 카드
 ========================= */
+
+.cardRow{
+
+  height:54px;
+}
 
 .cardRow img{
 
@@ -225,25 +226,35 @@ body{
    먹은패
 ========================= */
 
+.captureWrap{
+
+  display:flex;
+  flex-direction:column;
+
+  gap:0;
+
+  overflow:hidden;
+}
+
 .captureRow{
 
-  margin-top:-13px;
+  height:30px;
 }
 
-/* 첫줄은 안겹침 */
+/* 세로 겹침 */
 
-.captureRow:first-of-type{
+.captureRow + .captureRow{
 
-  margin-top:0;
+  margin-top:-10px;
 }
 
-/* 핵심:
-   좌우 겹침
+/* 핵심 수정:
+   펼쳐지며 겹침
 */
 
 .captureRow img{
 
-  width:8.6vw;
+  width:8.4vw;
 
   max-width:42px;
 
@@ -253,33 +264,33 @@ body{
 
   border-radius:3px;
 
-  flex-shrink:0;
+  flex:0 0 auto;
 
-  margin-right:-30%;
+  margin-left:-12px;
 }
 
-/* 마지막 카드 정상 */
+/* 첫 카드는 정상 */
 
-.captureRow img:last-child{
+.captureRow img:first-child{
 
-  margin-right:0;
+  margin-left:0;
 }
 
-/* 많아질수록 자동축소 */
+/* 많아질수록 자동 축소 */
 
 .captureRow img:nth-child(n+9){
 
-  width:7.4vw;
+  width:7vw;
 }
 
 .captureRow img:nth-child(n+13){
 
-  width:6.3vw;
+  width:6vw;
 }
 
 .captureRow img:nth-child(n+17){
 
-  width:5.3vw;
+  width:5vw;
 }
 
 /* =========================
@@ -293,6 +304,19 @@ body{
     max-width:1000px;
 
     margin:auto;
+
+    grid-template-rows:
+      24px
+      1fr
+      82px
+      90px
+      90px
+      1fr;
+  }
+
+  .cardRow{
+
+    height:70px;
   }
 
   .cardRow img{
@@ -300,21 +324,21 @@ body{
     width:54px;
   }
 
+  .captureRow{
+
+    height:38px;
+  }
+
+  .captureRow + .captureRow{
+
+    margin-top:-14px;
+  }
+
   .captureRow img{
 
     width:42px;
 
-    margin-right:-14px;
-  }
-
-  .captureRow{
-
-    margin-top:-18px;
-  }
-
-  .captureRow:first-of-type{
-
-    margin-top:0;
+    margin-left:-14px;
   }
 
   .captureRow img:nth-child(n+9){
@@ -353,7 +377,9 @@ body{
 
 <body>
 
-<!-- 로비 -->
+<!-- =====================
+     로비
+===================== -->
 
 <div id="lobby">
 
@@ -373,7 +399,9 @@ body{
 
 </div>
 
-<!-- 게임 -->
+<!-- =====================
+     게임
+===================== -->
 
 <div id="game">
 
@@ -417,24 +445,26 @@ body{
       상대 먹은패
     </div>
 
-    <div
-      class="captureRow"
-      id="enemyBrightAnimal"
-    ></div>
+    <div class="captureWrap">
 
-    <div
-      class="captureRow"
-      id="enemyRibbon"
-    ></div>
+      <div
+        class="captureRow"
+        id="enemyBrightAnimal"
+      ></div>
 
-    <div
-      class="captureRow"
-      id="enemyJunk"
-    ></div>
+      <div
+        class="captureRow"
+        id="enemyRibbon"
+      ></div>
+
+      <div
+        class="captureRow"
+        id="enemyJunk"
+      ></div>
+
+    </div>
 
   </div>
-
-  <div class="separator"></div>
 
   <!-- 상대패 -->
 
@@ -451,8 +481,6 @@ body{
 
   </div>
 
-  <div class="separator"></div>
-
   <!-- 바닥패 -->
 
   <div class="section">
@@ -467,8 +495,6 @@ body{
     ></div>
 
   </div>
-
-  <div class="separator"></div>
 
   <!-- 내패 -->
 
@@ -485,8 +511,6 @@ body{
 
   </div>
 
-  <div class="separator"></div>
-
   <!-- 내가 먹은패 -->
 
   <div class="section">
@@ -495,24 +519,26 @@ body{
       내가 먹은패
     </div>
 
-    <div
-      class="captureRow"
-      id="myBrightAnimal"
-    ></div>
+    <div class="captureWrap">
 
-    <div
-      class="captureRow"
-      id="myRibbon"
-    ></div>
+      <div
+        class="captureRow"
+        id="myBrightAnimal"
+      ></div>
 
-    <div
-      class="captureRow"
-      id="myJunk"
-    ></div>
+      <div
+        class="captureRow"
+        id="myRibbon"
+      ></div>
+
+      <div
+        class="captureRow"
+        id="myJunk"
+      ></div>
+
+    </div>
 
   </div>
-
-  <div id="winner"></div>
 
 </div>
 
