@@ -1,6 +1,4 @@
-const socket = io(
-  "http://192.168.0.5:3000"
-);
+const socket = io();
 
 let myId = null;
 let currentRoom = null;
@@ -22,7 +20,10 @@ function joinRoom(){
 
   currentRoom = room;
 
-  socket.emit("joinRoom", room);
+  socket.emit(
+    "joinRoom",
+    room
+  );
 
   document.getElementById("lobby").style.display =
     "none";
@@ -168,6 +169,14 @@ function makeImage(card){
 
   img.draggable = false;
 
+  img.onerror = ()=>{
+
+    console.log(
+      "이미지 로드 실패:",
+      img.src
+    );
+  };
+
   return img;
 }
 
@@ -216,7 +225,8 @@ function renderCaptured(
       getType(card);
 
     if(
-      type==="bright" ||
+      type==="bright"
+      ||
       type==="animal"
     ){
 
@@ -310,6 +320,23 @@ function renderEnemyHand(count){
 }
 
 /* =========================
+   연결
+========================= */
+
+socket.on(
+  "connect",
+  ()=>{
+
+    myId = socket.id;
+
+    console.log(
+      "socket connected:",
+      myId
+    );
+  }
+);
+
+/* =========================
    상태 갱신
 ========================= */
 
@@ -317,7 +344,7 @@ socket.on(
   "gameState",
   (state)=>{
 
-    myId = socket.id;
+    if(!state) return;
 
     const myTurn =
       state.turn === myId;
