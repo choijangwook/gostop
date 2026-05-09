@@ -23,7 +23,9 @@ function joinRoom(){
   socket.emit("joinRoom", room);
 
   document.getElementById("lobby").style.display = "none";
-  document.getElementById("game").style.display = "flex";
+
+  /* 핵심 수정 */
+  document.getElementById("game").style.display = "block";
 }
 
 /* =========================
@@ -42,7 +44,9 @@ function playWithBot(){
   socket.emit("playWithBot", room);
 
   document.getElementById("lobby").style.display = "none";
-  document.getElementById("game").style.display = "flex";
+
+  /* 핵심 수정 */
+  document.getElementById("game").style.display = "block";
 }
 
 /* =========================
@@ -78,7 +82,7 @@ function cardImage(card){
 }
 
 /* =========================
-   카드 분류
+   카드 타입
 ========================= */
 
 function getType(card){
@@ -102,7 +106,7 @@ function getType(card){
 }
 
 /* =========================
-   카드 번호
+   카드 월
 ========================= */
 
 function getMonth(card){
@@ -154,13 +158,15 @@ function makeImage(card){
 }
 
 /* =========================
-   줄 렌더
+   일반 줄 렌더
 ========================= */
 
 function renderRow(id,cards){
 
   const el =
     document.getElementById(id);
+
+  if(!el) return;
 
   el.innerHTML = "";
 
@@ -220,6 +226,8 @@ function renderHand(cards,myTurn){
   const hand =
     document.getElementById("hand");
 
+  if(!hand) return;
+
   hand.innerHTML = "";
 
   cards.forEach(card=>{
@@ -227,7 +235,7 @@ function renderHand(cards,myTurn){
     const img =
       makeImage(card);
 
-    /* 내 턴일때만 클릭 가능 */
+    /* 내 턴일때만 클릭 */
 
     if(myTurn){
 
@@ -255,6 +263,8 @@ function renderEnemyHand(count){
 
   const enemy =
     document.getElementById("enemyHand");
+
+  if(!enemy) return;
 
   enemy.innerHTML = "";
 
@@ -293,20 +303,22 @@ socket.on("gameState",(state)=>{
   /* 내패 */
 
   renderHand(
-    state.hands[myId] || [],
+    state.hands?.[myId] || [],
     myTurn
   );
 
-  /* 상대패 */
+  /* 상대 찾기 */
 
   const enemyId =
-    Object.keys(state.hands)
+    Object.keys(state.hands || {})
       .find(id=>id!==myId);
 
   const enemyCount =
     enemyId
       ? state.hands[enemyId].length
       : 0;
+
+  /* 상대패 */
 
   renderEnemyHand(enemyCount);
 
@@ -317,13 +329,13 @@ socket.on("gameState",(state)=>{
     state.table || []
   );
 
-  /* 내가 먹은패 */
+  /* 내 먹은패 */
 
   renderCaptured(
     "myBrightAnimal",
     "myRibbon",
     "myJunk",
-    state.captured[myId] || []
+    state.captured?.[myId] || []
   );
 
   /* 상대 먹은패 */
@@ -333,7 +345,7 @@ socket.on("gameState",(state)=>{
     "enemyRibbon",
     "enemyJunk",
     enemyId
-      ? state.captured[enemyId] || []
+      ? state.captured?.[enemyId] || []
       : []
   );
 });
