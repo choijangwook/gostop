@@ -46,7 +46,8 @@ function playWithBot(){
   document.getElementById("lobby").style.display = "none";
 
   /* 핵심 수정 */
-  document.getElementById("game").style.display = "block";
+  document.getElementById("game").classList.add("show");
+   
 }
 
 /* =========================
