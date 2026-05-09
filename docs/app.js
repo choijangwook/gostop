@@ -1,414 +1,231 @@
-const socket = io();
+const socket = io("https://gostop-server.onrender.com");
 
-let myId = null;
-let currentRoom = null;
-let isBotGame = false;
+let state = null;
 
-/* =========================
-   참가
-========================= */
+let captured = [];
+let aiCaptured = [];
 
-function joinRoom(){
+let score = 0;
+let aiScore = 0;
 
-  const room =
-    document
-      .getElementById("roomInput")
-      .value
-      .trim();
+let goCount = 0;
+let aiGoCount = 0;
 
-  if(!room) return;
+let playerTurn = true;
+let gameOver = false;
 
-  currentRoom = room;
+function createRoom() {
+  socket.emit("createRoom");
+}
 
-  socket.emit(
-    "joinRoom",
-    room
+function joinRoom() {
+  const roomId = document.getElementById("roomInput").value;
+  socket.emit("joinRoom", roomId);
+}
+
+socket.on("startGame", (gameState) => {
+  state = gameState;
+
+  state.ai = state.draw.splice(0, 10);
+
+  captured = [];
+  aiCaptured = [];
+  score = 0;
+  aiScore = 0;
+  goCount = 0;
+  aiGoCount = 0;
+  gameOver = false;
+
+  render();
+});
+
+/* 🔥 플레이어 턴 */
+function playCard(index) {
+  if (!playerTurn || gameOver) return;
+
+  const card = state.player1[index];
+  processTurn(card, true);
+  state.player1.splice(index, 1);
+
+  drawCard(true);
+  updateScore();
+
+  if (checkEnd(true)) return;
+
+  playerTurn = false;
+  render();
+
+  setTimeout(aiTurn, 800);
+}
+
+/* 🔥 AI 턴 */
+function aiTurn() {
+  if (gameOver) return;
+
+  let index = state.ai.findIndex(c =>
+    state.table.some(t => t.month === c.month)
   );
 
-  document.getElementById("lobby").style.display =
-    "none";
+  if (index === -1) index = Math.floor(Math.random() * state.ai.length);
 
-  document.getElementById("game").style.display =
-    "flex";
+  const card = state.ai[index];
+
+  processTurn(card, false);
+  state.ai.splice(index, 1);
+
+  drawCard(false);
+  updateScore();
+
+  if (checkEnd(false)) return;
+
+  playerTurn = true;
+  render();
 }
 
-/* =========================
-   컴퓨터 대결
-========================= */
+/* 🔥 카드 처리 */
+function processTurn(card, isPlayer) {
+  const target = isPlayer ? captured : aiCaptured;
+  const same = state.table.filter(c => c.month === card.month);
 
-function playWithBot(){
-
-  const room =
-    "bot_" + Date.now();
-
-  currentRoom = room;
-
-  isBotGame = true;
-
-  socket.emit(
-    "playWithBot",
-    room
-  );
-
-  document.getElementById("lobby").style.display =
-    "none";
-
-  document.getElementById("game").style.display =
-    "flex";
-}
-
-/* =========================
-   다시 시작
-========================= */
-
-function restartGame(){
-
-  if(!currentRoom) return;
-
-  socket.emit(
-    "restartGame",
-    currentRoom
-  );
-}
-
-/* =========================
-   나가기
-========================= */
-
-function leaveGame(){
-
-  location.reload();
-}
-
-/* =========================
-   카드 이미지
-========================= */
-
-function cardImage(card){
-
-  return `cards/${card}`;
-}
-
-/* =========================
-   카드 타입
-========================= */
-
-function getType(card){
-
-  if(card.includes("bright")){
-
-    return "bright";
+  if (same.length >= 1) {
+    target.push(card, ...same);
+    state.table = state.table.filter(c => c.month !== card.month);
+  } else {
+    state.table.push(card);
   }
-
-  if(card.includes("animal")){
-
-    return "animal";
-  }
-
-  if(card.includes("ribbon")){
-
-    return "ribbon";
-  }
-
-  return "junk";
 }
 
-/* =========================
-   월
-========================= */
+/* 🔥 뽑기 */
+function drawCard(isPlayer) {
+  if (state.draw.length === 0) return;
 
-function getMonth(card){
+  const card = state.draw.shift();
+  const target = isPlayer ? captured : aiCaptured;
 
-  return parseInt(
-    card.split("_")[0]
-  ) || 99;
+  const same = state.table.filter(c => c.month === card.month);
+
+  if (same.length > 0) {
+    target.push(card, ...same);
+    state.table = state.table.filter(c => c.month !== card.month);
+  } else {
+    state.table.push(card);
+  }
 }
 
-/* =========================
-   정렬
-========================= */
+/* 🔥 점수 계산 */
+function calc(cards) {
+  let bright = cards.filter(c => c.file.includes("bright")).length;
+  let animal = cards.filter(c => c.file.includes("animal")).length;
+  let ribbon = cards.filter(c => c.file.includes("ribbon")).length;
+  let junk = cards.filter(c => c.file.includes("junk")).length;
 
-function sortCards(cards){
+  let s = 0;
 
-  return [...cards].sort((a,b)=>{
+  if (bright === 3) s += 3;
+  if (bright === 4) s += 4;
+  if (bright === 5) s += 15;
 
-    const order = {
-      bright:0,
-      animal:1,
-      ribbon:2,
-      junk:3
-    };
+  if (animal >= 5) s += (animal - 4);
+  if (ribbon >= 5) s += (ribbon - 4);
+  if (junk >= 10) s += (junk - 9);
 
-    const ta =
-      order[getType(a)];
+  return s;
+}
 
-    const tb =
-      order[getType(b)];
+function updateScore() {
+  score = calc(captured);
+  aiScore = calc(aiCaptured);
+}
 
-    if(ta !== tb){
+/* 🔥 종료 + GO/STOP */
+function checkEnd(isPlayer) {
+  let s = isPlayer ? score : aiScore;
 
-      return ta - tb;
+  if (s >= 3) {
+    if (isPlayer) {
+      const go = confirm(`현재 ${s}점\nGO 할까?`);
+
+      if (go) {
+        goCount++;
+        score += goCount;
+      } else {
+        endGame(true);
+        return true;
+      }
+    } else {
+      // AI 판단
+      if (s < 7) {
+        aiGoCount++;
+        aiScore += aiGoCount;
+      } else {
+        endGame(false);
+        return true;
+      }
     }
+  }
 
-    return getMonth(a)
-      - getMonth(b);
-  });
+  return false;
 }
 
-/* =========================
-   이미지 생성
-========================= */
+/* 🔥 승패 판정 + 배수 */
+function endGame(playerWin) {
+  gameOver = true;
 
-function makeImage(card){
+  let finalScore = playerWin ? score : aiScore;
 
-  const img =
-    document.createElement("img");
+  let multiplier = 1;
 
-  img.src =
-    cardImage(card);
+  // 광박
+  if (captured.filter(c => c.file.includes("bright")).length >= 3) {
+    multiplier *= 2;
+  }
 
-  img.draggable = false;
+  // 피박
+  const opponentJunk = playerWin
+    ? aiCaptured.filter(c => c.file.includes("junk")).length
+    : captured.filter(c => c.file.includes("junk")).length;
 
-  img.onerror = ()=>{
+  if (opponentJunk < 6) multiplier *= 2;
 
-    console.log(
-      "이미지 로드 실패:",
-      img.src
-    );
-  };
+  finalScore *= multiplier;
 
-  return img;
-}
-
-/* =========================
-   일반 줄
-========================= */
-
-function renderRow(id,cards){
-
-  const el =
-    document.getElementById(id);
-
-  if(!el) return;
-
-  el.innerHTML = "";
-
-  cards.forEach(card=>{
-
-    el.appendChild(
-      makeImage(card)
-    );
-  });
-}
-
-/* =========================
-   먹은패
-========================= */
-
-function renderCaptured(
-  id1,
-  id2,
-  id3,
-  cards
-){
-
-  cards =
-    sortCards(cards);
-
-  const brightAnimal = [];
-  const ribbon = [];
-  const junk = [];
-
-  cards.forEach(card=>{
-
-    const type =
-      getType(card);
-
-    if(
-      type==="bright"
-      ||
-      type==="animal"
-    ){
-
-      brightAnimal.push(card);
-    }
-    else if(type==="ribbon"){
-
-      ribbon.push(card);
-    }
-    else{
-
-      junk.push(card);
-    }
-  });
-
-  renderRow(
-    id1,
-    brightAnimal
+  alert(
+    playerWin
+      ? `🎉 승리!\n점수: ${finalScore}`
+      : `💀 패배\n점수: ${finalScore}`
   );
 
-  renderRow(
-    id2,
-    ribbon
-  );
-
-  renderRow(
-    id3,
-    junk
-  );
+  render();
 }
 
-/* =========================
-   내패
-========================= */
+/* 🔥 렌더링 */
+function render() {
+  const game = document.getElementById("game");
 
-function renderHand(
-  cards,
-  myTurn
-){
+  game.innerHTML = `
+    <h3>내 카드</h3>
+    ${state.player1.map((c, i) => `
+      <img src="cards/${c.file}" onclick="playCard(${i})">
+    `).join("")}
 
-  const hand =
-    document.getElementById("hand");
+    <h3>AI 카드 (${state.ai.length})</h3>
+    ${Array(state.ai.length).fill('🂠').join("")}
 
-  if(!hand) return;
+    <h3>바닥</h3>
+    ${state.table.map(c => `
+      <img src="cards/${c.file}">
+    `).join("")}
 
-  hand.innerHTML = "";
+    <h3>내 점수: ${score} (GO:${goCount})</h3>
+    <h3>AI 점수: ${aiScore} (GO:${aiGoCount})</h3>
 
-  cards.forEach(card=>{
+    <h3>내 먹은 카드 (${captured.length})</h3>
+    ${captured.map(c => `<img src="cards/${c.file}">`).join("")}
 
-    const img =
-      makeImage(card);
+    <h3>AI 먹은 카드 (${aiCaptured.length})</h3>
+    ${aiCaptured.map(c => `<img src="cards/${c.file}">`).join("")}
 
-    if(myTurn){
-
-      img.onclick = ()=>{
-
-        socket.emit(
-          "playCard",
-          {
-            room:currentRoom,
-            card
-          }
-        );
-      };
-    }
-
-    hand.appendChild(img);
-  });
+    ${gameOver ? "<h2>게임 종료</h2>" : ""}
+  `;
 }
 
-/* =========================
-   상대패
-========================= */
-
-function renderEnemyHand(count){
-
-  const enemy =
-    document.getElementById("enemyHand");
-
-  if(!enemy) return;
-
-  enemy.innerHTML = "";
-
-  for(let i=0;i<count;i++){
-
-    const img =
-      makeImage("0-back.png");
-
-    enemy.appendChild(img);
-  }
-}
-
-/* =========================
-   연결
-========================= */
-
-socket.on(
-  "connect",
-  ()=>{
-
-    myId = socket.id;
-
-    console.log(
-      "socket connected:",
-      myId
-    );
-  }
-);
-
-/* =========================
-   상태 갱신
-========================= */
-
-socket.on(
-  "gameState",
-  (state)=>{
-
-    if(!state) return;
-
-    const myTurn =
-      state.turn === myId;
-
-    document.getElementById("turn").innerHTML =
-      myTurn
-        ? "🟢 내 턴"
-        : "⏳ 상대 턴";
-
-    document.getElementById("deck").innerHTML =
-      `남은패 : ${state.deck.length}`;
-
-    renderHand(
-      state.hands?.[myId] || [],
-      myTurn
-    );
-
-    const enemyId =
-      Object
-        .keys(state.hands || {})
-        .find(
-          id => id !== myId
-        );
-
-    const enemyCount =
-      enemyId
-        ? state.hands[enemyId].length
-        : 0;
-
-    renderEnemyHand(
-      enemyCount
-    );
-
-    renderRow(
-      "table",
-      state.table || []
-    );
-
-    renderCaptured(
-      "myBrightAnimal",
-      "myRibbon",
-      "myJunk",
-      state.captured?.[myId] || []
-    );
-
-    renderCaptured(
-      "enemyBrightAnimal",
-      "enemyRibbon",
-      "enemyJunk",
-      enemyId
-        ? state.captured?.[enemyId] || []
-        : []
-    );
-  }
-);
-
-/* =========================
-   종료
-========================= */
-
-socket.on(
-  "gameOver",
-  (msg)=>{
-
-    alert(msg);
-  }
-);
