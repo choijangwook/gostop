@@ -12,18 +12,23 @@ const io = new Server(server, {
   }
 });
 
-console.log("🎴 Gostop 서버 실행중");
+app.use(express.static("../docs"));
+
+/* =========================
+   방 목록
+========================= */
 
 const rooms = {};
 
-// =========================
-// 카드 생성
-// =========================
+/* =========================
+   카드 생성
+========================= */
 
-function createDeck() {
+function createDeck(){
+
+  const deck = [];
 
   const cards = [
-
     "1_bright.png",
     "1_ribbon.png",
     "1_junk1.png",
@@ -89,534 +94,471 @@ function createDeck() {
     "special3_draw.png"
   ];
 
-  return shuffle(cards);
-}
+  deck.push(...cards);
 
-// =========================
-// 셔플
-// =========================
-
-function shuffle(arr) {
-
-  for (
-    let i = arr.length - 1;
-    i > 0;
-    i--
-  ) {
+  for(let i=deck.length-1;i>0;i--){
 
     const j =
-      Math.floor(
-        Math.random() * (i + 1)
-      );
+      Math.floor(Math.random()*(i+1));
 
-    [arr[i], arr[j]] =
-      [arr[j], arr[i]];
+    [deck[i],deck[j]] =
+      [deck[j],deck[i]];
   }
 
-  return arr;
+  return deck;
 }
 
-// =========================
-// 월 추출
-// =========================
+/* =========================
+   월 추출
+========================= */
 
-function getMonth(card) {
+function getMonth(card){
 
-  return card.split("_")[0];
+  const n =
+    parseInt(card.split("_")[0]);
+
+  return isNaN(n)
+    ? "special"
+    : n;
 }
 
-// =========================
-// 방 생성
-// =========================
+/* =========================
+   게임 생성
+========================= */
 
-function createRoom(roomId) {
+function createGame(players){
 
   const deck =
     createDeck();
 
-  const room = {
+  const hands = {};
+  const captured = {};
 
-    roomId,
+  players.forEach(id=>{
 
-    players: [],
+    hands[id] = [];
+    captured[id] = [];
+  });
 
-    hands: {},
+  /* 2인 기준 */
 
-    captured: {},
+  const handCount = 10;
 
-    table: [],
+  players.forEach(id=>{
+
+    for(let i=0;i<handCount;i++){
+
+      hands[id].push(
+        deck.pop()
+      );
+    }
+  });
+
+  const table = [];
+
+  for(let i=0;i<8;i++){
+
+    table.push(deck.pop());
+  }
+
+  return {
+
+    players,
 
     deck,
 
-    turn: null,
+    hands,
 
-    winner: null,
+    table,
 
-    lastCapture: false,
+    captured,
 
-    bot: false
+    turn:
+      players[
+        Math.floor(
+          Math.random()*players.length
+        )
+      ]
   };
+}
 
-  // 바닥패 8장
-  for (let i = 0; i < 8; i++) {
+/* =========================
+   카드 먹기
+========================= */
 
-    room.table.push(
-      deck.pop()
-    );
+function playCard(game,playerId,card){
+
+  if(game.turn !== playerId){
+
+    return;
   }
-
-  rooms[roomId] = room;
-
-  return room;
-}
-
-// =========================
-// 상태 전송
-// =========================
-
-function sendState(room) {
-
-  room.deckCount =
-    room.deck.length;
-
-  io.to(room.roomId)
-    .emit("stateUpdate", room);
-}
-
-// =========================
-// 턴 넘김
-// =========================
-
-function nextTurn(room, playerId) {
-
-  const current =
-    room.players.indexOf(
-      playerId
-    );
-
-  room.turn =
-    room.players[
-      (
-        current + 1
-      )
-      %
-      room.players.length
-    ];
-}
-
-// =========================
-// 카드 플레이
-// =========================
-
-function playCard(
-  room,
-  playerId,
-  card
-) {
-
-  room.lastCapture = false;
 
   const hand =
-    room.hands[playerId];
+    game.hands[playerId];
 
-  if (!hand)
-    return;
-
-  const idx =
+  const index =
     hand.indexOf(card);
 
-  if (idx === -1)
+  if(index === -1){
+
     return;
+  }
 
-  // 손패 제거
-  hand.splice(idx, 1);
+  hand.splice(index,1);
 
-  // =====================
-  // special 카드 처리
-  // =====================
+  /* special */
 
-  if (
-    card.includes("special")
-  ) {
+  if(card.includes("special")){
 
-    // special 자체 먹기
-    room.captured[playerId]
+    game.captured[playerId]
       .push(card);
 
-    room.lastCapture = true;
-
-    // 바닥패 1장 가져오기
-    if (
-      room.table.length > 0
-    ) {
+    if(game.table.length > 0){
 
       const taken =
-        room.table.pop();
+        game.table.pop();
 
-      room.captured[playerId]
+      game.captured[playerId]
         .push(taken);
     }
-
-    // 덱 1장 추가 드로우
-    if (
-      room.deck.length > 0
-    ) {
-
-      const draw =
-        room.deck.pop();
-
-      room.table.push(draw);
-    }
-
-    nextTurn(room, playerId);
-
-    sendState(room);
-
-    // 봇 턴
-    if (
-      room.bot &&
-      room.turn === "BOT"
-    ) {
-
-      setTimeout(() => {
-
-        botPlay(room);
-
-      }, 700);
-    }
-
-    return;
   }
+  else{
 
-  // =====================
-  // 일반 카드 처리
-  // =====================
+    const month =
+      getMonth(card);
 
-  const month =
-    getMonth(card);
-
-  const match =
-    room.table.find(
-      c =>
-        getMonth(c)
-        ===
-        month
-    );
-
-  // 먹기 성공
-  if (match) {
-
-    room.table =
-      room.table.filter(
-        c => c !== match
+    const matchIndex =
+      game.table.findIndex(
+        c => getMonth(c) === month
       );
 
-    room.captured[playerId]
-      .push(card);
+    if(matchIndex !== -1){
 
-    room.captured[playerId]
-      .push(match);
+      const taken =
+        game.table.splice(
+          matchIndex,
+          1
+        )[0];
 
-    room.lastCapture = true;
+      game.captured[playerId]
+        .push(card);
 
-  } else {
+      game.captured[playerId]
+        .push(taken);
+    }
+    else{
 
-    // 실패시 바닥
-    room.table.push(card);
+      game.table.push(card);
+    }
   }
 
-  // =====================
-  // 드로우
-  // =====================
+  /* 드로우 */
 
-  if (
-    room.deck.length > 0
-  ) {
+  if(game.deck.length > 0){
 
     const draw =
-      room.deck.pop();
+      game.deck.pop();
 
-    const drawMonth =
-      getMonth(draw);
+    if(draw.includes("special")){
 
-    const drawMatch =
-      room.table.find(
-        c =>
-          getMonth(c)
-          ===
-          drawMonth
-      );
-
-    if (drawMatch) {
-
-      room.table =
-        room.table.filter(
-          c => c !== drawMatch
-        );
-
-      room.captured[playerId]
+      game.captured[playerId]
         .push(draw);
 
-      room.captured[playerId]
-        .push(drawMatch);
+      if(game.table.length > 0){
 
-      room.lastCapture = true;
+        const taken =
+          game.table.pop();
 
-    } else {
+        game.captured[playerId]
+          .push(taken);
+      }
+    }
+    else{
 
-      room.table.push(draw);
+      const month =
+        getMonth(draw);
+
+      const matchIndex =
+        game.table.findIndex(
+          c => getMonth(c) === month
+        );
+
+      if(matchIndex !== -1){
+
+        const taken =
+          game.table.splice(
+            matchIndex,
+            1
+          )[0];
+
+        game.captured[playerId]
+          .push(draw);
+
+        game.captured[playerId]
+          .push(taken);
+      }
+      else{
+
+        game.table.push(draw);
+      }
     }
   }
 
-  // 턴 넘김
-  nextTurn(room, playerId);
+  /* 턴 넘기기 */
 
-  // =====================
-  // 종료 체크
-  // =====================
+  const current =
+    game.players.indexOf(playerId);
 
-  const end =
-    Object.values(room.hands)
-      .every(
-        h => h.length === 0
-      );
+  game.turn =
+    game.players[
+      (current+1)
+      %
+      game.players.length
+    ];
 
-  if (end) {
+  /* 게임 종료 */
 
-    let best =
-      room.players[0];
+  const finished =
+    Object.values(game.hands)
+      .every(h=>h.length===0);
 
-    room.players.forEach(p => {
+  if(finished){
 
-      if (
-        room.captured[p].length
-        >
-        room.captured[best].length
-      ) {
+    let winner = null;
+    let max = -1;
 
-        best = p;
+    game.players.forEach(id=>{
+
+      const score =
+        game.captured[id].length;
+
+      if(score > max){
+
+        max = score;
+        winner = id;
       }
     });
 
-    room.winner = best;
-  }
-
-  sendState(room);
-
-  // =====================
-  // 봇 턴
-  // =====================
-
-  if (
-    room.bot &&
-    room.turn === "BOT"
-  ) {
-
-    setTimeout(() => {
-
-      botPlay(room);
-
-    }, 700);
+    game.gameOver = true;
+    game.winner = winner;
   }
 }
 
-// =========================
-// 봇
-// =========================
+/* =========================
+   연결
+========================= */
 
-function botPlay(room) {
+io.on("connection",(socket)=>{
 
-  const botHand =
-    room.hands["BOT"];
+  /* 참가 */
 
-  if (
-    !botHand ||
-    botHand.length === 0
-  ) {
-    return;
-  }
+  socket.on("joinRoom",(room)=>{
 
-  const card =
-    botHand[0];
+    socket.join(room);
 
-  playCard(
-    room,
-    "BOT",
-    card
-  );
-}
+    if(!rooms[room]){
 
-// =========================
-// 연결
-// =========================
-
-io.on("connection", socket => {
-
-  console.log("접속:", socket.id);
-
-  // 방 참가
-  socket.on("joinRoom", data => {
-
-    const roomId =
-      String(data.roomId);
-
-    let room =
-      rooms[roomId];
-
-    if (!room) {
-
-      room =
-        createRoom(roomId);
+      rooms[room] = {
+        waiting:true,
+        players:[]
+      };
     }
 
-    socket.join(roomId);
+    const game =
+      rooms[room];
 
-    // 중복 방지
-    if (
-      !room.players.includes(
-        socket.id
-      )
-    ) {
+    /* 중복 제거 */
 
-      room.players.push(
-        socket.id
+    game.players =
+      game.players.filter(
+        id => id !== socket.id
+      );
+
+    if(!game.players.includes(socket.id)){
+
+      game.players.push(socket.id);
+    }
+
+    /* 2인 시작 */
+
+    if(game.players.length >= 2){
+
+      const newGame =
+        createGame(game.players);
+
+      rooms[room] = newGame;
+
+      io.to(room).emit(
+        "gameState",
+        newGame
       );
     }
-
-    // 손패 생성
-    if (
-      !room.hands[socket.id]
-    ) {
-
-      room.hands[socket.id] =
-        [];
-
-      room.captured[socket.id] =
-        [];
-
-      for (
-        let i = 0;
-        i < 10;
-        i++
-      ) {
-
-        room.hands[socket.id]
-          .push(
-            room.deck.pop()
-          );
-      }
-    }
-
-    // 컴퓨터 대결
-    if (
-      data.bot &&
-      !room.bot
-    ) {
-
-      room.bot = true;
-
-      room.players.push("BOT");
-
-      room.hands["BOT"] =
-        [];
-
-      room.captured["BOT"] =
-        [];
-
-      for (
-        let i = 0;
-        i < 10;
-        i++
-      ) {
-
-        room.hands["BOT"]
-          .push(
-            room.deck.pop()
-          );
-      }
-    }
-
-    // 첫 턴
-    if (!room.turn) {
-
-      room.turn =
-        room.players[0];
-    }
-
-    sendState(room);
   });
 
-  // 카드 플레이
-  socket.on("playCard", data => {
+  /* 컴퓨터 대결 */
 
-    const room =
-      rooms[data.roomId];
+  socket.on("playWithBot",(room)=>{
 
-    if (!room)
-      return;
+    socket.join(room);
 
-    // 자기 턴만
-    if (
-      String(room.turn)
-      !==
-      String(socket.id)
-    ) {
+    const botId = "BOT";
+
+    const newGame =
+      createGame([
+        socket.id,
+        botId
+      ]);
+
+    rooms[room] = newGame;
+
+    io.to(room).emit(
+      "gameState",
+      newGame
+    );
+
+    /* 봇 턴 */
+
+    handleBot(room);
+  });
+
+  /* 카드 플레이 */
+
+  socket.on("playCard",({room,card})=>{
+
+    const game =
+      rooms[room];
+
+    if(!game) return;
+
+    playCard(
+      game,
+      socket.id,
+      card
+    );
+
+    io.to(room).emit(
+      "gameState",
+      game
+    );
+
+    if(game.gameOver){
+
+      io.to(room).emit(
+        "gameOver",
+        game.winner === socket.id
+          ? "승리!"
+          : "패배!"
+      );
+
       return;
     }
 
-    playCard(
-      room,
-      socket.id,
-      data.card
+    handleBot(room);
+  });
+
+  /* 다시 시작 */
+
+  socket.on("restartGame",(room)=>{
+
+    const game =
+      rooms[room];
+
+    if(!game) return;
+
+    const players =
+      game.players || [];
+
+    const newGame =
+      createGame(players);
+
+    rooms[room] = newGame;
+
+    io.to(room).emit(
+      "gameState",
+      newGame
     );
   });
 
-  // 종료
-  socket.on("disconnect", () => {
+  /* 연결 종료 */
 
-    Object.values(rooms)
-      .forEach(room => {
+  socket.on("disconnect",()=>{
 
-        room.players =
-          room.players.filter(
-            p =>
-              p !== socket.id
+    Object.keys(rooms)
+      .forEach(room=>{
+
+        const game =
+          rooms[room];
+
+        if(!game.players) return;
+
+        game.players =
+          game.players.filter(
+            id => id !== socket.id
           );
-
-        delete room.hands[
-          socket.id
-        ];
-
-        delete room.captured[
-          socket.id
-        ];
-
-        if (
-          room.turn
-          ===
-          socket.id
-        ) {
-
-          room.turn =
-            room.players[0]
-            || null;
-        }
-
-        sendState(room);
       });
   });
 });
 
-// =========================
-// 서버 시작
-// =========================
+/* =========================
+   봇
+========================= */
 
-server.listen(
-  process.env.PORT || 10000,
-  () => {
+function handleBot(room){
 
-    console.log(
-      "포트 10000 실행중"
-    );
+  const game =
+    rooms[room];
+
+  if(!game) return;
+
+  if(game.turn !== "BOT"){
+
+    return;
   }
-);
+
+  setTimeout(()=>{
+
+    const hand =
+      game.hands["BOT"];
+
+    if(!hand || hand.length===0){
+
+      return;
+    }
+
+    const card =
+      hand[0];
+
+    playCard(
+      game,
+      "BOT",
+      card
+    );
+
+    io.to(room).emit(
+      "gameState",
+      game
+    );
+
+    if(game.gameOver){
+
+      io.to(room).emit(
+        "gameOver",
+        game.winner === "BOT"
+          ? "컴퓨터 승리!"
+          : "당신 승리!"
+      );
+    }
+
+  },700);
+}
+
+/* =========================
+   서버 시작
+========================= */
+
+server.listen(3000,()=>{
+
+  console.log(
+    "server running"
+  );
+});
