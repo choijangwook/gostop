@@ -17,13 +17,9 @@
 
 <style>
 
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
-
 html,
 body{
+
   margin:0;
   padding:0;
 
@@ -38,13 +34,13 @@ body{
   font-family:sans-serif;
 }
 
-/* =====================
+/* =========================
    로비
-===================== */
+========================= */
 
 #lobby{
 
-  width:100vw;
+  width:100%;
   height:100vh;
 
   display:flex;
@@ -53,7 +49,7 @@ body{
   justify-content:center;
   align-items:center;
 
-  gap:8px;
+  gap:10px;
 }
 
 #lobby input{
@@ -72,17 +68,17 @@ body{
 
 #lobby button{
 
-  padding:8px 12px;
+  padding:10px 14px;
 
   border:none;
   border-radius:8px;
 
-  font-size:14px;
+  font-size:15px;
 }
 
-/* =====================
+/* =========================
    게임
-===================== */
+========================= */
 
 #game{
 
@@ -91,105 +87,60 @@ body{
   width:100vw;
   height:100vh;
 
-  overflow:hidden;
+  box-sizing:border-box;
 
   padding:2px;
 
-  flex-direction:column;
+  overflow:hidden;
 }
 
-/* =====================
+/* =========================
    상단
-===================== */
+========================= */
 
 #topBar{
-
-  height:22px;
 
   display:flex;
 
   justify-content:space-between;
   align-items:center;
 
-  font-size:10px;
+  font-size:12px;
 
-  flex-shrink:0;
-}
-
-.topButtons{
-
-  display:flex;
-  gap:2px;
+  margin-bottom:2px;
 }
 
 .smallBtn{
 
-  font-size:8px;
+  font-size:10px;
 
-  padding:1px 4px;
+  padding:2px 5px;
 
   border:none;
-  border-radius:4px;
+  border-radius:5px;
 }
 
-/* =====================
+/* =========================
    섹션
-===================== */
+========================= */
 
 .section{
 
-  width:100%;
-
-  overflow:hidden;
-
-  flex-shrink:0;
+  margin-bottom:3px;
 }
 
 .sectionTitle{
 
-  font-size:9px;
+  font-size:11px;
+
+  margin-bottom:1px;
 
   font-weight:bold;
-
-  line-height:10px;
-
-  margin:0;
-
-  opacity:0.92;
 }
 
-/* =====================
-   높이
-===================== */
-
-#enemyCapturedSection{
-  height:23vh;
-  flex-shrink:0;
-}
-
-#enemyHandSection{
-  height:11vh;
-  flex-shrink:0;
-}
-
-#tableSection{
-  height:12vh;
-  flex-shrink:0;
-}
-
-#myHandSection{
-  height:12vh;
-  flex-shrink:0;
-}
-
-#myCapturedSection{
-  height:23vh;
-  flex-shrink:0;
-}
-
-/* =====================
-   일반 카드
-===================== */
+/* =========================
+   일반 줄
+========================= */
 
 .cardRow{
 
@@ -197,45 +148,16 @@ body{
 
   flex-wrap:nowrap;
 
+  gap:1px;
+
   overflow:hidden;
 
-  align-items:center;
-
-  height:calc(100% - 10px);
-
-  min-width:0;
+  width:100%;
 }
 
-.cardRow img{
-
-  width:11vw;
-
-  max-width:52px;
-
-  min-width:24px;
-
-  height:auto;
-
-  object-fit:contain;
-
-  border-radius:3px;
-
-  flex-shrink:1;
-}
-
-/* =====================
+/* =========================
    먹은패
-===================== */
-
-.captureWrap{
-
-  height:calc(100% - 10px);
-
-  display:flex;
-  flex-direction:column;
-
-  overflow:hidden;
-}
+========================= */
 
 .captureRow{
 
@@ -243,117 +165,118 @@ body{
 
   flex-wrap:nowrap;
 
+  gap:1px;
+
   overflow:hidden;
 
-  align-items:flex-start;
+  width:100%;
 
-  height:33%;
-
-  min-width:0;
+  margin-bottom:1px;
 }
 
-.captureRow img{
+/* =========================
+   기본 카드 크기
+========================= */
 
-  width:8.2vw;
+img{
 
-  max-width:40px;
-
-  min-width:22px;
+  width:48px;
 
   height:auto;
 
   object-fit:contain;
 
-  border-radius:3px;
+  border-radius:4px;
 
-  flex:0 0 auto;
-
-  margin-left:0;
+  flex-shrink:1;
 }
 
-/* 카드 많아질때만 overlap */
+/* =========================
+   먹은패 자동축소
+========================= */
+
+.captureRow img{
+
+  width:42px;
+}
 
 .captureRow img:nth-child(n+9){
 
-  margin-left:-12px;
+  width:36px;
 }
 
-/* 더 많아질때 */
+.captureRow img:nth-child(n+13){
 
-.captureRow img:nth-child(n+15){
-
-  margin-left:-18px;
+  width:30px;
 }
 
-/* =====================
-   구분선
-===================== */
+.captureRow img:nth-child(n+17){
 
-.separator{
-
-  height:1px;
-
-  background:
-    rgba(255,255,255,0.15);
-
-  flex-shrink:0;
-
-  margin:1px 0;
+  width:26px;
 }
 
-/* =====================
-   PC
-===================== */
+/* =========================
+   모바일
+========================= */
 
-@media (min-width:701px){
+@media (max-width:700px){
 
   #game{
 
-    max-width:1000px;
-
-    margin:auto;
+    padding:1px;
   }
 
-  #enemyCapturedSection{
-    height:220px;
-  }
+  .section{
 
-  #enemyHandSection{
-    height:88px;
-  }
-
-  #tableSection{
-    height:96px;
-  }
-
-  #myHandSection{
-    height:96px;
-  }
-
-  #myCapturedSection{
-    height:220px;
-  }
-
-  .cardRow img{
-
-    width:54px;
-  }
-
-  .captureRow img{
-
-    width:40px;
-  }
-
-  #topBar{
-    font-size:11px;
+    margin-bottom:2px;
   }
 
   .sectionTitle{
+
+    font-size:10px;
+
+    margin-bottom:0;
+  }
+
+  #topBar{
+
     font-size:10px;
   }
 
   .smallBtn{
+
     font-size:9px;
+
+    padding:1px 4px;
+  }
+
+  /* 전체 한 화면 */
+
+  img{
+
+    width:11.5vw;
+
+    max-width:52px;
+  }
+
+  .captureRow img{
+
+    width:10vw;
+  }
+
+  .captureRow img:nth-child(n+9){
+
+    width:8.7vw;
+  }
+
+  .captureRow img:nth-child(n+13){
+
+    width:7.5vw;
+  }
+
+  .captureRow img:nth-child(n+17){
+
+    width:6.4vw;
   }
 }
 
@@ -362,7 +285,9 @@ body{
 
 <body>
 
-<!-- 로비 -->
+<!-- =====================
+     로비
+===================== -->
 
 <div id="lobby">
 
@@ -382,7 +307,9 @@ body{
 
 </div>
 
-<!-- 게임 -->
+<!-- =====================
+     게임
+===================== -->
 
 <div id="game">
 
@@ -391,73 +318,53 @@ body{
   <div id="topBar">
 
     <div id="turn">
-      🟢 내 턴
+      대기중...
     </div>
 
     <div id="deck">
       남은패 : 0
     </div>
 
-    <div class="topButtons">
-
-      <button
-        class="smallBtn"
-        onclick="restartGame()"
-      >
-        다시 시작
-      </button>
-
-      <button
-        class="smallBtn"
-        onclick="leaveGame()"
-      >
-        나가기
-      </button>
-
-    </div>
+    <button
+      class="smallBtn"
+      onclick="leaveGame()"
+    >
+      나가기
+    </button>
 
   </div>
 
   <!-- 상대 먹은패 -->
 
-  <div
-    class="section"
-    id="enemyCapturedSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       상대 먹은패
     </div>
 
-    <div class="captureWrap">
+    <!-- 1줄 -->
+    <div
+      class="captureRow"
+      id="enemyBrightAnimal"
+    ></div>
 
-      <div
-        class="captureRow"
-        id="enemyBrightAnimal"
-      ></div>
+    <!-- 2줄 -->
+    <div
+      class="captureRow"
+      id="enemyRibbon"
+    ></div>
 
-      <div
-        class="captureRow"
-        id="enemyRibbon"
-      ></div>
-
-      <div
-        class="captureRow"
-        id="enemyJunk"
-      ></div>
-
-    </div>
+    <!-- 3줄 -->
+    <div
+      class="captureRow"
+      id="enemyJunk"
+    ></div>
 
   </div>
 
-  <div class="separator"></div>
+  <!-- 상대 패 -->
 
-  <!-- 상대패 -->
-
-  <div
-    class="section"
-    id="enemyHandSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       상대패
@@ -470,14 +377,9 @@ body{
 
   </div>
 
-  <div class="separator"></div>
-
   <!-- 바닥패 -->
 
-  <div
-    class="section"
-    id="tableSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       바닥패
@@ -490,14 +392,9 @@ body{
 
   </div>
 
-  <div class="separator"></div>
+  <!-- 내 패 -->
 
-  <!-- 내패 -->
-
-  <div
-    class="section"
-    id="myHandSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       내패
@@ -510,39 +407,35 @@ body{
 
   </div>
 
-  <div class="separator"></div>
-
   <!-- 내가 먹은패 -->
 
-  <div
-    class="section"
-    id="myCapturedSection"
-  >
+  <div class="section">
 
     <div class="sectionTitle">
       내가 먹은패
     </div>
 
-    <div class="captureWrap">
+    <!-- 1줄 -->
+    <div
+      class="captureRow"
+      id="myBrightAnimal"
+    ></div>
 
-      <div
-        class="captureRow"
-        id="myBrightAnimal"
-      ></div>
+    <!-- 2줄 -->
+    <div
+      class="captureRow"
+      id="myRibbon"
+    ></div>
 
-      <div
-        class="captureRow"
-        id="myRibbon"
-      ></div>
-
-      <div
-        class="captureRow"
-        id="myJunk"
-      ></div>
-
-    </div>
+    <!-- 3줄 -->
+    <div
+      class="captureRow"
+      id="myJunk"
+    ></div>
 
   </div>
+
+  <div id="winner"></div>
 
 </div>
 
