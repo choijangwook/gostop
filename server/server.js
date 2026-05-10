@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -10,29 +9,18 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-const ROOMS_FILE = "rooms.json";
-
-let rooms = {};
+const rooms = {};
 
 // =========================
-// 저장/로드
+// 방 정리
 // =========================
 
-function saveRooms() {
-  try {
-    fs.writeFileSync(
-      ROOMS_FILE,
-      JSON.stringify(rooms, null, 2)
-    );
-  } catch (e) {}
-}
+function cleanRoom(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
 
-function loadRooms() {
-  try {
-    const data = fs.readFileSync(ROOMS_FILE);
-    rooms = JSON.parse(data);
-  } catch (e) {
-    rooms = {};
+  if (room.players.length === 0) {
+    delete rooms[roomId];
   }
 }
 
@@ -67,55 +55,51 @@ function createDeck() {
 // =========================
 
 function createRoom(roomId) {
-  const deck = createDeck();
-
   const room = {
     roomId,
     players: [],
+    names: {},
     hands: {},
     captured: {},
-    table: [],
-    deck,
+    table: createDeck().slice(0, 8),
+    deck: createDeck().slice(8),
     turn: null,
     winner: null
   };
 
-  for (let i = 0; i < 8; i++) {
-    room.table.push(deck.pop());
-  }
-
   rooms[roomId] = room;
-  saveRooms();
-
   return room;
 }
 
 // =========================
-// 상태
+// 상태 전송
 // =========================
 
-function sendState(room) {
+function send(room) {
   io.to(room.roomId).emit("stateUpdate", room);
-  saveRooms();
 }
 
 // =========================
-// 게임 로직
+// 게임 로직 (단순화)
 // =========================
 
-function nextTurn(room, playerId) {
-  const idx = room.players.indexOf(playerId);
+function nextTurn(room, id) {
+  const idx = room.players.indexOf(id);
   room.turn = room.players[(idx + 1) % room.players.length];
 }
 
-function playCard(room, playerId, card) {
+// =========================
+// 카드 플레이
+// =========================
+
+function play(room, playerId, card) {
   const hand = room.hands[playerId];
   if (!hand) return;
 
-  const idx = hand.indexOf(card);
-  if (idx === -1) return;
+  const i = hand.indexOf(card);
+  if (i === -1) return;
 
-  hand.splice(idx, 1);
+  hand.splice(i, 1);
 
   const month = card.split("_")[0];
 
@@ -131,12 +115,11 @@ function playCard(room, playerId, card) {
   }
 
   if (room.deck.length > 0) {
-    const draw = room.deck.pop();
-    room.table.push(draw);
+    room.table.push(room.deck.pop());
   }
 
   nextTurn(room, playerId);
-  sendState(room);
+  send(room);
 }
 
 // =========================
@@ -145,7 +128,12 @@ function playCard(room, playerId, card) {
 
 io.on("connection", socket => {
 
-  socket.on("joinRoom", (roomId) => {
+  console.log("connect", socket.id);
+
+  socket.on("joinRoom", data => {
+
+    const roomId = data.roomId;
+    const name = data.name || "guest";
 
     let room = rooms[roomId];
     if (!room) room = createRoom(roomId);
@@ -155,6 +143,8 @@ io.on("connection", socket => {
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
     }
+
+    room.names[socket.id] = name;
 
     if (!room.hands[socket.id]) {
       room.hands[socket.id] = [];
@@ -167,26 +157,34 @@ io.on("connection", socket => {
 
     if (!room.turn) room.turn = room.players[0];
 
-    sendState(room);
+    send(room);
   });
 
-  socket.on("playCard", ({ roomId, card }) => {
-    const room = rooms[roomId];
+  socket.on("playCard", data => {
+    const room = rooms[data.roomId];
     if (!room) return;
 
     if (room.turn !== socket.id) return;
 
-    playCard(room, socket.id, card);
+    play(room, socket.id, data.card);
   });
 
   socket.on("disconnect", () => {
+
     Object.values(rooms).forEach(room => {
+
       room.players = room.players.filter(p => p !== socket.id);
+
+      delete room.hands[socket.id];
+      delete room.captured[socket.id];
+      delete room.names[socket.id];
+
+      cleanRoom(room.roomId);
+
+      send(room);
     });
   });
 });
-
-loadRooms();
 
 server.listen(process.env.PORT || 10000, () => {
   console.log("server running");
