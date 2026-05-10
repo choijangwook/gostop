@@ -60,7 +60,6 @@ button {
   color: white;
   font-weight: bold;
   font-size: 16px;
-  pointer-events: auto;
 }
 
 .section {
@@ -94,7 +93,6 @@ button {
   flex-shrink: 0;
   background: white;
   margin-left: -18px;
-  pointer-events: auto;
 }
 
 .card:first-child {
@@ -167,9 +165,8 @@ button {
 
 <script>
 
-// 🔥 중요
-// 모바일에서 localhost 쓰면 안됨
-const socket = io();
+// 🔥 여기만 네 PC IPv4 주소로 수정
+const socket = io("http://192.168.0.5:10000");
 
 let roomId = "room1";
 
@@ -235,7 +232,6 @@ function createCard(card, clickable = false) {
 
   img.className = "card";
 
-  // 🔥 중요: 카드 이미지 경로
   img.src = `images/${card}`;
 
   img.draggable = false;
