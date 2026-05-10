@@ -38,8 +38,7 @@ body{
   display:flex;
   flex-wrap:nowrap;
   overflow-x:auto;
-  overflow-y:hidden;
-  padding-bottom:10px;
+  gap:6px;
 }
 
 .card{
@@ -47,24 +46,15 @@ body{
   height:90px;
   object-fit:cover;
   border-radius:6px;
-  margin-left:-18px;
   flex-shrink:0;
   border:2px solid white;
   background:white;
-}
-
-.row .card:first-child{
-  margin-left:0;
 }
 
 #table{
   display:flex;
   flex-wrap:wrap;
   gap:6px;
-}
-
-#table .card{
-  margin-left:0;
 }
 
 #controls{
@@ -89,10 +79,6 @@ button{
   color:white;
 }
 
-button:active{
-  transform:scale(0.95);
-}
-
 @media (max-width:600px){
   .card{
     width:48px;
@@ -110,11 +96,6 @@ button:active{
 </div>
 
 <div class="section">
-  <h3>상대 먹은패</h3>
-  <div id="opponentCaptured" class="row"></div>
-</div>
-
-<div class="section">
   <h3>테이블</h3>
   <div id="table"></div>
 </div>
@@ -129,169 +110,82 @@ button:active{
   <div id="captured" class="row"></div>
 </div>
 
-<div style="height:90px;"></div>
-
 <div id="controls">
+
   <button onclick="restartGame()">다시하기</button>
   <button onclick="leaveRoom()">나가기</button>
+
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <script>
 
-// =========================
-// 서버 연결 (핵심 수정)
-// =========================
+const socket = io("http://192.168.219.103:10000");
 
-// ❌ 기존: io("http://192.168...")
-// ✅ 수정: 동일 origin 자동 연결 (배포/로컬 다 대응)
-const socket = io();
-
-const roomId = "room1";
 let myId = "";
-
-// =========================
-// connect
-// =========================
+let roomId = "room1";
+let state = null;
 
 socket.on("connect", () => {
   myId = socket.id;
-
-  console.log("connected:", myId);
-
   socket.emit("joinRoom", { roomId });
 });
 
-// =========================
-// state update
-// =========================
+socket.on("stateUpdate", (data) => {
+  state = data;
 
-socket.on("stateUpdate", data => {
-
-  // 🔥 핵심 수정: turn 비교 방식 변경
   const myRole = data.roles?.[myId];
-  const isMyTurn = myRole === data.turn;
+  const isMyTurn = myRole && data.turn === myRole;
 
   document.getElementById("turnInfo").innerText =
     isMyTurn ? "🟢 내 턴" : "🔴 상대 턴";
 
-  render(data);
+  render();
 });
 
-// =========================
-// 카드 생성
-// =========================
-
 function createCard(card){
-
   const img = document.createElement("img");
-
-  // 🔥 핵심 수정: 이미지 경로
-  img.src = "/cards/" + card;
-
+  img.src = "./cards/" + card;
   img.className = "card";
 
   img.onerror = () => {
-    console.log("image fail:", card);
+    console.log("이미지 없음:", card);
   };
 
   return img;
 }
 
-// =========================
-// render root
-// =========================
+function render(){
 
-function render(data){
+  const hand = document.getElementById("hand");
+  hand.innerHTML = "";
 
-  renderHand(data.hands?.[myId] || []);
-  renderTable(data.table || []);
-  renderCaptured(data.captured?.[myId] || []);
-
-  const opponentCards = [];
-
-  Object.keys(data.captured || {}).forEach(id => {
-    if (id !== myId) {
-      opponentCards.push(...data.captured[id]);
-    }
-  });
-
-  renderOpponent(opponentCards);
-}
-
-// =========================
-// hand
-// =========================
-
-function renderHand(cards){
-
-  const el = document.getElementById("hand");
-  el.innerHTML = "";
-
-  cards.forEach(card => {
-
+  (state?.hands?.[myId] || []).forEach(card => {
     const img = createCard(card);
-
     img.onclick = () => {
-      socket.emit("playCard", {
-        roomId,
-        card
-      });
+      socket.emit("playCard", { roomId, card });
     };
+    hand.appendChild(img);
+  });
 
-    el.appendChild(img);
+  const table = document.getElementById("table");
+  table.innerHTML = "";
+
+  (state?.table || []).forEach(card => {
+    table.appendChild(createCard(card));
+  });
+
+  const captured = document.getElementById("captured");
+  captured.innerHTML = "";
+
+  (state?.captured?.[myId] || []).forEach(card => {
+    captured.appendChild(createCard(card));
   });
 }
-
-// =========================
-// table
-// =========================
-
-function renderTable(cards){
-
-  const el = document.getElementById("table");
-  el.innerHTML = "";
-
-  cards.forEach(card => {
-    el.appendChild(createCard(card));
-  });
-}
-
-// =========================
-// 내 먹은패
-// =========================
-
-function renderCaptured(cards){
-
-  const el = document.getElementById("captured");
-  el.innerHTML = "";
-
-  cards.forEach(card => {
-    el.appendChild(createCard(card));
-  });
-}
-
-// =========================
-// 상대 먹은패
-// =========================
-
-function renderOpponent(cards){
-
-  const el = document.getElementById("opponentCaptured");
-  el.innerHTML = "";
-
-  cards.forEach(card => {
-    el.appendChild(createCard(card));
-  });
-}
-
-// =========================
-// 버튼
-// =========================
 
 function restartGame(){
-  socket.emit("restartGame", roomId);
+  socket.emit("restart", { roomId });
 }
 
 function leaveRoom(){
