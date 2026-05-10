@@ -12,31 +12,15 @@ const io = new Server(server, {
 const rooms = {};
 
 // =========================
-// 방 생성
-// =========================
-
-function createRoom(roomId) {
-  return {
-    roomId,
-    players: [],
-    names: {},
-    hands: {},
-    captured: {},
-    table: [],
-    deck: createDeck(),
-    turn: null,
-    winner: null
-  };
-}
-
-// =========================
 // 카드
 // =========================
 
 function createDeck() {
+
   const cards = [];
 
   for (let i = 1; i <= 12; i++) {
+
     cards.push(`${i}_bright.png`);
     cards.push(`${i}_animal.png`);
     cards.push(`${i}_ribbon.png`);
@@ -56,12 +40,31 @@ function createDeck() {
 }
 
 // =========================
-// 상태 전송
+// 방 생성
 // =========================
 
-function send(room) {
-  if (!room) return;
-  io.to(room.roomId).emit("stateUpdate", room);
+function createRoom(roomId) {
+
+  const deck = createDeck();
+
+  const room = {
+    roomId,
+    players: [],
+    hands: {},
+    captured: {},
+    table: [],
+    deck,
+    turn: null,
+    winner: null,
+    lastCapture: false
+  };
+
+  for (let i = 0; i < 8; i++) {
+    room.table.push(deck.pop());
+  }
+
+  rooms[roomId] = room;
+  return room;
 }
 
 // =========================
@@ -74,34 +77,90 @@ function nextTurn(room, id) {
 }
 
 // =========================
-// 카드 플레이
+// 월 추출
+// =========================
+
+function month(card) {
+  return card.split("_")[0];
+}
+
+// =========================
+// 고스톱 핵심 로직
 // =========================
 
 function play(room, playerId, card) {
+
   const hand = room.hands[playerId];
   if (!hand) return;
 
-  const i = hand.indexOf(card);
-  if (i === -1) return;
+  const idx = hand.indexOf(card);
+  if (idx === -1) return;
 
-  hand.splice(i, 1);
+  hand.splice(idx, 1);
 
-  const month = card.split("_")[0];
-  const match = room.table.find(c => c.split("_")[0] === month);
+  const m = month(card);
+
+  const match = room.table.find(c => month(c) === m);
+
+  room.lastCapture = false;
+
+  // =====================
+  // 먹기 성공
+  // =====================
 
   if (match) {
+
     room.table = room.table.filter(c => c !== match);
-    room.captured[playerId].push(card, match);
+
+    room.captured[playerId].push(card);
+    room.captured[playerId].push(match);
+
+    room.lastCapture = true;
+
   } else {
+
+    // 실패 → 바닥
     room.table.push(card);
   }
 
+  // =====================
+  // 드로우
+  // =====================
+
   if (room.deck.length > 0) {
-    room.table.push(room.deck.pop());
+
+    const draw = room.deck.pop();
+
+    const dm = month(draw);
+
+    const dmatch = room.table.find(c => month(c) === dm);
+
+    if (dmatch) {
+
+      room.table = room.table.filter(c => c !== dmatch);
+
+      room.captured[playerId].push(draw);
+      room.captured[playerId].push(dmatch);
+
+      room.lastCapture = true;
+
+    } else {
+      room.table.push(draw);
+    }
   }
 
   nextTurn(room, playerId);
+
   send(room);
+}
+
+// =========================
+// 상태 전송
+// =========================
+
+function send(room) {
+  if (!room) return;
+  io.to(room.roomId).emit("stateUpdate", room);
 }
 
 // =========================
@@ -110,31 +169,19 @@ function play(room, playerId, card) {
 
 io.on("connection", socket => {
 
-  console.log("connect", socket.id);
-
-  // =====================
-  // joinRoom (복구 핵심)
-  // =====================
-
   socket.on("joinRoom", data => {
 
-    const roomId = data.roomId;
-    const name = data.name || "guest";
+    let room = rooms[data.roomId];
+    if (!room) room = createRoom(data.roomId);
 
-    let room = rooms[roomId];
-    if (!room) room = createRoom(roomId);
+    socket.join(data.roomId);
 
-    socket.join(roomId);
-
-    // 기존 플레이어 유지 (중복 방지)
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
     }
 
-    room.names[socket.id] = name;
-
-    // 🔥 재접속 복구 핵심
     if (!room.hands[socket.id]) {
+
       room.hands[socket.id] = [];
       room.captured[socket.id] = [];
 
@@ -143,16 +190,10 @@ io.on("connection", socket => {
       }
     }
 
-    if (!room.turn) {
-      room.turn = room.players[0];
-    }
+    if (!room.turn) room.turn = room.players[0];
 
     send(room);
   });
-
-  // =====================
-  // 카드 플레이
-  // =====================
 
   socket.on("playCard", data => {
 
@@ -162,29 +203,6 @@ io.on("connection", socket => {
     if (room.turn !== socket.id) return;
 
     play(room, socket.id, data.card);
-  });
-
-  // =====================
-  // disconnect (중요)
-  // =====================
-
-  socket.on("disconnect", () => {
-
-    Object.values(rooms).forEach(room => {
-
-      room.players = room.players.filter(p => p !== socket.id);
-
-      // ⚠️ 삭제하지 않음 (재접속 대비 유지)
-      // delete room.hands[socket.id];
-      // delete room.captured[socket.id];
-      // delete room.names[socket.id];
-
-      if (room.players.length === 0) {
-        delete rooms[room.roomId];
-      }
-
-      send(room);
-    });
   });
 });
 
