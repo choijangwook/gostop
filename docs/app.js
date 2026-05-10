@@ -1,8 +1,8 @@
-const socket = io("https://gostop-server.onrender.com");
+const socket = io();
 
-let myId;
-let roomId;
-let state;
+let myId = null;
+let roomId = "room1";
+let state = null;
 
 // =========================
 // connect
@@ -10,51 +10,89 @@ let state;
 
 socket.on("connect", () => {
   myId = socket.id;
+
+  console.log("socket connected:", myId);
+
+  socket.emit("joinRoom", { roomId });
 });
 
 // =========================
-// join
+// state update
 // =========================
 
-function joinRoom(r) {
+socket.on("stateUpdate", data => {
 
-  roomId = r || document.getElementById("roomInput").value;
+  state = data;
 
-  socket.emit("joinRoom", { roomId });
+  render();
 
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("game").style.display = "block";
+  // 🔥 핵심 수정: role 기반 턴 계산
+  const myRole = data.roles?.[myId];
+  const isMyTurn = myRole === data.turn;
+
+  const turnEl = document.getElementById("turn");
+
+  if (turnEl) {
+    turnEl.innerText = isMyTurn ? "🟢 내 턴" : "🔴 상대 턴";
+  }
+});
+
+// =========================
+// play card
+// =========================
+
+function playCard(card){
+
+  const myRole = state?.roles?.[myId];
+  const isMyTurn = myRole === state?.turn;
+
+  if(!isMyTurn) return;
+
+  socket.emit("playCard", {
+    roomId,
+    card
+  });
 }
 
 // =========================
-// state
+// restart
 // =========================
 
-socket.on("stateUpdate", s => {
+function restartGame(){
+  socket.emit("restartGame", roomId);
+}
 
-  state = s;
+// =========================
+// leave
+// =========================
+
+function leaveRoom(){
+  location.reload();
+}
+
+// =========================
+// render
+// =========================
+
+function render(){
+
+  if(!state) return;
 
   renderHand();
   renderTable();
   renderCaptured();
-
-  const myTurn =
-    String(state.turn) === String(myId);
-
-  document.getElementById("turn").innerText =
-    myTurn ? "🟢 내 턴" : "⏳ 상대 턴";
-
-  document.getElementById("deck").innerText =
-    "남은패 : " + (state.deck?.length || 0);
-});
+  renderOpponent();
+}
 
 // =========================
 // hand
 // =========================
 
-function renderHand() {
+function renderHand(){
 
   const el = document.getElementById("hand");
+  if(!el) return;
+
   el.innerHTML = "";
 
   const cards = state?.hands?.[myId] || [];
@@ -62,15 +100,9 @@ function renderHand() {
   cards.forEach(card => {
 
     const img = document.createElement("img");
-    img.src = "cards/" + card;
+    img.src = "/cards/" + card;
 
-    img.onclick = () => {
-
-      socket.emit("playCard", {
-        roomId,
-        card
-      });
-    };
+    img.onclick = () => playCard(card);
 
     el.appendChild(img);
   });
@@ -80,48 +112,65 @@ function renderHand() {
 // table
 // =========================
 
-function renderTable() {
+function renderTable(){
 
   const el = document.getElementById("table");
+  if(!el) return;
+
   el.innerHTML = "";
 
-  (state?.table || []).forEach(c => {
+  (state?.table || []).forEach(card => {
 
     const img = document.createElement("img");
-    img.src = "cards/" + c;
+    img.src = "/cards/" + card;
 
     el.appendChild(img);
   });
 }
 
 // =========================
-// 먹은패 (🔥 핵심 수정)
+// 내 먹은패
 // =========================
 
-function renderCaptured() {
+function renderCaptured(){
 
-  const my = document.getElementById("myCaptured");
-  const enemy = document.getElementById("enemyCaptured");
+  const el = document.getElementById("captured");
+  if(!el) return;
 
-  if (my) my.innerHTML = "";
-  if (enemy) enemy.innerHTML = "";
+  el.innerHTML = "";
 
-  if (!state?.captured) return;
+  const cards = state?.captured?.[myId] || [];
 
-  Object.keys(state.captured).forEach(id => {
+  cards.forEach(card => {
 
-    const list = state.captured[id];
+    const img = document.createElement("img");
+    img.src = "/cards/" + card;
 
-    list.forEach(card => {
+    el.appendChild(img);
+  });
+}
+
+// =========================
+// 상대 먹은패
+// =========================
+
+function renderOpponent(){
+
+  const el = document.getElementById("opponentCaptured");
+  if(!el) return;
+
+  el.innerHTML = "";
+
+  Object.keys(state?.captured || {}).forEach(id => {
+
+    if(id === myId) return;
+
+    (state.captured[id] || []).forEach(card => {
 
       const img = document.createElement("img");
-      img.src = "cards/" + card;
+      img.src = "/cards/" + card;
 
-      if (String(id) === String(myId)) {
-        my?.appendChild(img);
-      } else {
-        enemy?.appendChild(img);
-      }
+      el.appendChild(img);
     });
   });
 }
