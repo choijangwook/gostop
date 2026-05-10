@@ -1,51 +1,34 @@
 const socket = io("https://gostop-server.onrender.com");
 
-let myId = localStorage.getItem("gid") || null;
-let currentRoom = null;
-let state = null;
+let myId;
+let currentRoom;
+let state;
 
 // =========================
-// 닉네임 유지
+// 소리
 // =========================
 
-let myName =
-  localStorage.getItem("name") ||
-  prompt("닉네임") ||
-  "guest";
+const clickSound = new Audio("sounds/card.mp3");
+const captureSound = new Audio("sounds/capture.mp3");
+const turnSound = new Audio("sounds/turn.mp3");
+const bgm = new Audio("sounds/bgm.mp3");
 
-localStorage.setItem("name", myName);
-
-// =========================
-// 자동 방 입장
-// =========================
-
-const params = new URLSearchParams(location.search);
-const autoRoom = params.get("room");
-
-if (autoRoom) {
-  setTimeout(() => joinRoom(autoRoom), 300);
-}
+bgm.loop = true;
+bgm.volume = 0.3;
 
 // =========================
-// connect (재접속 핵심)
+// connect
 // =========================
 
 socket.on("connect", () => {
 
   myId = socket.id;
-  localStorage.setItem("gid", myId);
 
-  // 🔥 재접속 자동 복구
-  if (currentRoom) {
-    socket.emit("joinRoom", {
-      roomId: currentRoom,
-      name: myName
-    });
-  }
+  localStorage.setItem("gid", myId);
 });
 
 // =========================
-// joinRoom
+// join
 // =========================
 
 function joinRoom(roomId) {
@@ -59,12 +42,13 @@ function joinRoom(roomId) {
   currentRoom = room;
 
   socket.emit("joinRoom", {
-    roomId: room,
-    name: myName
+    roomId: room
   });
 
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game").style.display = "block";
+
+  bgm.play().catch(()=>{});
 }
 
 // =========================
@@ -75,14 +59,28 @@ socket.on("stateUpdate", s => {
 
   state = s;
 
+  renderHand();
+  renderTable();
+
+  const myTurn = state.turn === myId;
+
   document.getElementById("turn").innerText =
-    state.turn === myId ? "🟢 내 턴" : "⏳ 상대 턴";
+    myTurn ? "🟢 내 턴" : "⏳ 상대 턴";
 
   document.getElementById("deck").innerText =
     "남은패 : " + (state.deck?.length || 0);
 
-  renderHand();
-  renderTable();
+  if (myTurn) {
+
+    turnSound.currentTime = 0;
+    turnSound.play();
+  }
+
+  if (state.lastCapture) {
+
+    captureSound.currentTime = 0;
+    captureSound.play();
+  }
 });
 
 // =========================
@@ -102,6 +100,12 @@ function renderHand() {
     img.src = "cards/" + card;
 
     img.onclick = () => {
+
+      if (state.turn !== myId) return;
+
+      clickSound.currentTime = 0;
+      clickSound.play();
+
       socket.emit("playCard", {
         roomId: currentRoom,
         card
