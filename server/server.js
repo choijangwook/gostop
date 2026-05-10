@@ -6,16 +6,16 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 
-app.use(express.static(path.join(__dirname, "../docs")));
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 
-const io = new Server(server, { cors: { origin: "*" } });
+// static
+app.use(express.static(path.join(__dirname, "../docs")));
 
 const rooms = {};
 
-// =========================
 // deck
-// =========================
-
 function createDeck() {
   const cards = [];
 
@@ -38,202 +38,130 @@ function createDeck() {
   return cards;
 }
 
-// =========================
-// score system
-// =========================
-
-function calcScore(cards) {
-  let gwang = 0, pi = 0, ddi = 0;
-
-  cards.forEach(c => {
-    if (c.includes("bright")) gwang++;
-    else if (c.includes("ribbon")) ddi++;
-    else pi++;
-  });
-
-  return { gwang, pi, ddi, total: gwang * 3 + ddi * 2 + pi };
-}
-
-// =========================
-// room
-// =========================
-
-function createRoom(roomId) {
+function createGame(players) {
   const deck = createDeck();
 
+  const hands = {};
+  const captured = {};
+  const roles = {};
+
+  players.forEach((id, idx) => {
+    roles[id] = idx === 0 ? "A" : "B";
+    hands[id] = [];
+    captured[id] = [];
+  });
+
+  players.forEach(id => {
+    for (let i = 0; i < 10; i++) {
+      hands[id].push(deck.pop());
+    }
+  });
+
   return {
-    roomId,
-    players: [],
-    roles: {},
-    turn: "A",
-    deck,
+    players,
+    roles,
+    hands,
+    captured,
     table: deck.splice(0, 8),
-    hands: {},
-    captured: {},
-    gameOver: false,
-    winner: null,
-    timer: null
+    deck,
+    turn: "A",
+    winner: null
   };
 }
 
-// =========================
-// send
-// =========================
-
-function send(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  io.to(roomId).emit("stateUpdate", room);
+function send(room) {
+  io.to(room.id).emit("stateUpdate", room);
 }
 
-// =========================
-// bot AI (simple + valid move)
-// =========================
-
-function botPlay(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  if (room.turn !== "B") return;
-
-  setTimeout(() => {
-    const hand = room.hands["BOT"] || [];
-    if (!hand.length) return;
-
-    const card = hand[Math.floor(Math.random() * hand.length)];
-
-    play(roomId, "BOT", card);
-  }, 700);
+function nextTurn(room) {
+  room.turn = room.turn === "A" ? "B" : "A";
 }
 
-// =========================
-// play logic
-// =========================
+function play(room, id, card) {
+  const hand = room.hands[id];
+  if (!hand) return;
 
-function play(roomId, socketId, card) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  const role = room.roles[socketId];
-  if (role !== room.turn) return;
-
-  const hand = room.hands[socketId];
   const idx = hand.indexOf(card);
   if (idx === -1) return;
 
   hand.splice(idx, 1);
 
   const month = card.split("_")[0];
-  const matchIndex = room.table.findIndex(c => c.split("_")[0] === month);
+  const match = room.table.find(c => c.split("_")[0] === month);
 
-  if (matchIndex !== -1) {
-    const match = room.table.splice(matchIndex, 1)[0];
-    room.captured[socketId].push(card, match);
+  if (match) {
+    room.table = room.table.filter(c => c !== match);
+    room.captured[id].push(card, match);
   } else {
     room.table.push(card);
   }
 
-  if (room.deck.length > 0) {
+  if (room.deck.length) {
     room.table.push(room.deck.pop());
   }
 
-  room.turn = room.turn === "A" ? "B" : "A";
-
-  send(roomId);
-
-  botPlay(roomId);
+  nextTurn(room);
+  send(room);
 }
-
-// =========================
-// restart
-// =========================
-
-function restart(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  const deck = createDeck();
-
-  room.deck = deck;
-  room.table = deck.splice(0, 8);
-  room.hands = {};
-  room.captured = {};
-  room.turn = "A";
-  room.gameOver = false;
-
-  room.players.forEach((id, i) => {
-    room.roles[id] = i === 0 ? "A" : "B";
-
-    room.hands[id] = [];
-    room.captured[id] = [];
-
-    for (let j = 0; j < 10; j++) {
-      room.hands[id].push(room.deck.pop());
-    }
-  });
-
-  send(roomId);
-}
-
-// =========================
-// socket
-// =========================
 
 io.on("connection", socket => {
 
   socket.on("joinRoom", ({ roomId }) => {
 
+    socket.join(roomId);
+
     if (!rooms[roomId]) {
-      rooms[roomId] = createRoom(roomId);
+      rooms[roomId] = {
+        id: roomId,
+        players: [],
+        roles: {},
+        hands: {},
+        captured: {},
+        table: [],
+        deck: [],
+        turn: "A"
+      };
     }
 
     const room = rooms[roomId];
-
-    socket.join(roomId);
 
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
     }
 
-    room.roles[socket.id] =
-      room.players.length === 1 ? "A" : "B";
-
-    if (!room.hands[socket.id]) {
-      room.hands[socket.id] = [];
-      room.captured[socket.id] = [];
-
-      for (let i = 0; i < 10; i++) {
-        room.hands[socket.id].push(room.deck.pop());
-      }
+    if (room.players.length >= 2 && !room._started) {
+      const newGame = createGame(room.players);
+      rooms[roomId] = newGame;
+      rooms[roomId].id = roomId;
+      rooms[roomId]._started = true;
     }
 
-    send(roomId);
+    send(rooms[roomId]);
   });
 
   socket.on("playCard", ({ roomId, card }) => {
-    play(roomId, socket.id, card);
-  });
-
-  socket.on("restartGame", (roomId) => {
-    restart(roomId);
-  });
-
-  socket.on("leaveRoom", ({ roomId }) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    room.players = room.players.filter(id => id !== socket.id);
+    const role = room.roles[socket.id];
+    if (role !== room.turn) return;
 
-    delete room.roles[socket.id];
-    delete room.hands[socket.id];
-    delete room.captured[socket.id];
+    play(room, socket.id, card);
+  });
 
-    send(roomId);
+  socket.on("restart", ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    rooms[roomId] = createGame(room.players);
+    rooms[roomId].id = roomId;
+
+    send(rooms[roomId]);
   });
 
 });
 
 server.listen(10000, "0.0.0.0", () => {
   console.log("server running");
+  console.log("http://192.168.219.103:10000");
 });
