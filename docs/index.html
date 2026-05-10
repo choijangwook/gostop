@@ -2,10 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>GoStop</title>
 
 <style>
+
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -14,96 +18,110 @@ body {
   font-family: sans-serif;
   background: #0b3d2e;
   color: white;
+  touch-action: manipulation;
 }
 
 #wrap {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  padding-bottom: 90px;
 }
 
-/* 상단 정보 */
 #top {
   padding: 10px;
   position: sticky;
   top: 0;
   background: #06281e;
   z-index: 10;
+  font-weight: bold;
 }
 
-/* 버튼 고정 영역 */
 #controls {
   position: fixed;
-  bottom: 10px;
+  bottom: 0;
   left: 0;
   width: 100%;
   display: flex;
   justify-content: space-around;
-  z-index: 9999;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.85);
+  z-index: 99999;
 }
 
 button {
-  padding: 10px 14px;
+  flex: 1;
+  max-width: 180px;
+  padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #1f7a4c;
   color: white;
   font-weight: bold;
+  font-size: 16px;
+  pointer-events: auto;
 }
 
-/* 영역 공통 */
 .section {
   padding: 10px;
   overflow-x: hidden;
 }
 
-/* 카드 공통 */
-.card {
-  display: inline-block;
-  width: 55px;
-  height: 80px;
-  margin: 2px;
-  background: white;
-  color: black;
-  border-radius: 6px;
-  text-align: center;
-  line-height: 80px;
-  font-size: 12px;
+.section h3 {
+  margin: 6px 0;
+  font-size: 16px;
 }
 
-/* 손패 - 겹치기 핵심 */
-#hand, #captured {
+.card-row {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: 10px;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  min-height: 90px;
 }
 
-#hand .card,
-#captured .card {
-  margin-left: -18px;   /* 👈 핵심: 겹치기 */
+.card-row::-webkit-scrollbar {
+  display: none;
+}
+
+.card {
+  width: 55px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
   flex-shrink: 0;
+  background: white;
+  margin-left: -18px;
+  pointer-events: auto;
 }
 
-#hand .card:first-child,
-#captured .card:first-child {
+.card:first-child {
   margin-left: 0;
 }
 
-/* 테이블 */
 #table {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  min-height: 90px;
 }
 
-/* 모바일 안전 영역 */
+#table .card {
+  margin-left: 0;
+}
+
 @media (max-width: 600px) {
+
   .card {
-    width: 45px;
-    height: 70px;
-    line-height: 70px;
-    font-size: 11px;
+    width: 46px;
+    height: 68px;
+  }
+
+  button {
+    font-size: 15px;
+    padding: 12px;
   }
 }
 
@@ -115,12 +133,12 @@ button {
 <div id="wrap">
 
   <div id="top">
-    <div id="turnInfo">TURN</div>
+    <div id="turnInfo">연결중...</div>
   </div>
 
   <div class="section">
     <h3>상대 먹은패</h3>
-    <div id="opponentCaptured"></div>
+    <div id="opponentCaptured" class="card-row"></div>
   </div>
 
   <div class="section">
@@ -130,12 +148,12 @@ button {
 
   <div class="section">
     <h3>내 패</h3>
-    <div id="hand"></div>
+    <div id="hand" class="card-row"></div>
   </div>
 
   <div class="section">
     <h3>내 먹은패</h3>
-    <div id="captured"></div>
+    <div id="captured" class="card-row"></div>
   </div>
 
 </div>
@@ -146,17 +164,27 @@ button {
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
 <script>
 
-const socket = io("http://localhost:10000");
+// 🔥 중요
+// 모바일에서 localhost 쓰면 안됨
+const socket = io();
 
 let roomId = "room1";
+
 let roles = {};
 let myRole = null;
 let turn = null;
 let isMyTurn = false;
 
-socket.emit("joinRoom", { roomId });
+socket.on("connect", () => {
+
+  socket.emit("joinRoom", {
+    roomId
+  });
+
+});
 
 socket.on("stateUpdate", (data) => {
 
@@ -164,28 +192,63 @@ socket.on("stateUpdate", (data) => {
   turn = data.turn;
 
   myRole = roles[socket.id];
+
   if (!myRole) return;
 
   isMyTurn = (myRole === turn);
 
   document.getElementById("turnInfo").innerText =
-    `TURN: ${turn} | ME: ${myRole} | ${isMyTurn ? "내 턴" : "상대 턴"}`;
+    isMyTurn ? "🟢 내 턴" : "🔴 상대 턴";
 
   render(data);
 });
 
 function playCard(card) {
+
   if (!isMyTurn) return;
 
-  socket.emit("playCard", { roomId, card });
+  socket.emit("playCard", {
+    roomId,
+    card
+  });
 }
 
 function restartGame() {
-  socket.emit("restart", { roomId });
+
+  socket.emit("restart", {
+    roomId
+  });
 }
 
 function leaveRoom() {
-  socket.emit("leaveRoom", { roomId });
+
+  socket.emit("leaveRoom", {
+    roomId
+  });
+
+  location.reload();
+}
+
+function createCard(card, clickable = false) {
+
+  const img = document.createElement("img");
+
+  img.className = "card";
+
+  // 🔥 중요: 카드 이미지 경로
+  img.src = `images/${card}`;
+
+  img.draggable = false;
+
+  img.onerror = () => {
+    img.style.background = "white";
+  };
+
+  if (clickable) {
+    img.onclick = () => playCard(card);
+  }
+
+  return img;
 }
 
 function render(data) {
@@ -194,7 +257,6 @@ function render(data) {
   renderTable(data.table || []);
   renderCaptured(data.captured?.[socket.id] || []);
 
-  // 상대 패
   const opp = Object.keys(data.roles || {})
     .filter(id => id !== socket.id)
     .map(id => data.captured[id] || [])
@@ -204,51 +266,46 @@ function render(data) {
 }
 
 function renderHand(cards) {
+
   const el = document.getElementById("hand");
+
   el.innerHTML = "";
 
-  cards.forEach(c => {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerText = c;
-    d.onclick = () => playCard(c);
-    el.appendChild(d);
+  cards.forEach(card => {
+    el.appendChild(createCard(card, true));
   });
 }
 
 function renderTable(cards) {
+
   const el = document.getElementById("table");
+
   el.innerHTML = "";
 
-  cards.forEach(c => {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerText = c;
-    el.appendChild(d);
+  cards.forEach(card => {
+    el.appendChild(createCard(card));
   });
 }
 
 function renderCaptured(cards) {
+
   const el = document.getElementById("captured");
+
   el.innerHTML = "";
 
-  cards.forEach(c => {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerText = c;
-    el.appendChild(d);
+  cards.forEach(card => {
+    el.appendChild(createCard(card));
   });
 }
 
 function renderOpponent(cards) {
+
   const el = document.getElementById("opponentCaptured");
+
   el.innerHTML = "";
 
-  cards.forEach(c => {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.innerText = c;
-    el.appendChild(d);
+  cards.forEach(card => {
+    el.appendChild(createCard(card));
   });
 }
 
@@ -256,4 +313,3 @@ function renderOpponent(cards) {
 
 </body>
 </html>
-
