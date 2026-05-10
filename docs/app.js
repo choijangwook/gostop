@@ -1,11 +1,22 @@
 const socket = io("https://gostop-server.onrender.com");
 
-let myId = localStorage.getItem("myId");
+let myId = null;
 let currentRoom = null;
 let state = null;
 
 // =========================
-// 자동 입장
+// 닉네임
+// =========================
+
+let myName =
+  localStorage.getItem("name") ||
+  prompt("닉네임 입력") ||
+  "guest";
+
+localStorage.setItem("name", myName);
+
+// =========================
+// 링크 자동 입장
 // =========================
 
 const params = new URLSearchParams(location.search);
@@ -21,11 +32,10 @@ if (autoRoom) {
 
 socket.on("connect", () => {
   myId = socket.id;
-  localStorage.setItem("myId", myId);
 });
 
 // =========================
-// join
+// 방 입장
 // =========================
 
 function joinRoom(roomId) {
@@ -38,10 +48,27 @@ function joinRoom(roomId) {
 
   currentRoom = room;
 
-  socket.emit("joinRoom", room);
+  socket.emit("joinRoom", {
+    roomId: room,
+    name: myName
+  });
 
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game").style.display = "block";
+}
+
+// =========================
+// 공유 링크
+// =========================
+
+function copyLink() {
+
+  const link =
+    location.origin + "?room=" + currentRoom;
+
+  navigator.clipboard.writeText(link);
+
+  alert("링크 복사됨");
 }
 
 // =========================
@@ -53,7 +80,6 @@ socket.on("stateUpdate", s => {
 
   renderHand();
   renderTable();
-  renderCaptured();
 
   document.getElementById("turn").innerText =
     state.turn === myId ? "🟢 내 턴" : "⏳ 상대 턴";
@@ -96,27 +122,6 @@ function renderTable() {
   el.innerHTML = "";
 
   (state?.table || []).forEach(c => {
-    const img = document.createElement("img");
-    img.src = "cards/" + c;
-    el.appendChild(img);
-  });
-}
-
-// =========================
-// captured (정렬 포함)
-// =========================
-
-function renderCaptured() {
-  const el = document.getElementById("myCaptured");
-  if (!el) return;
-
-  el.innerHTML = "";
-
-  const cards = state?.captured?.[myId] || [];
-
-  cards.sort();
-
-  cards.forEach(c => {
     const img = document.createElement("img");
     img.src = "cards/" + c;
     el.appendChild(img);
