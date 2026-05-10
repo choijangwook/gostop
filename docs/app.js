@@ -1,22 +1,22 @@
 const socket = io("https://gostop-server.onrender.com");
 
-let myId = null;
+let myId = localStorage.getItem("gid") || null;
 let currentRoom = null;
 let state = null;
 
 // =========================
-// 닉네임
+// 닉네임 유지
 // =========================
 
 let myName =
   localStorage.getItem("name") ||
-  prompt("닉네임 입력") ||
+  prompt("닉네임") ||
   "guest";
 
 localStorage.setItem("name", myName);
 
 // =========================
-// 링크 자동 입장
+// 자동 방 입장
 // =========================
 
 const params = new URLSearchParams(location.search);
@@ -27,15 +27,25 @@ if (autoRoom) {
 }
 
 // =========================
-// connect
+// connect (재접속 핵심)
 // =========================
 
 socket.on("connect", () => {
+
   myId = socket.id;
+  localStorage.setItem("gid", myId);
+
+  // 🔥 재접속 자동 복구
+  if (currentRoom) {
+    socket.emit("joinRoom", {
+      roomId: currentRoom,
+      name: myName
+    });
+  }
 });
 
 // =========================
-// 방 입장
+// joinRoom
 // =========================
 
 function joinRoom(roomId) {
@@ -58,34 +68,21 @@ function joinRoom(roomId) {
 }
 
 // =========================
-// 공유 링크
-// =========================
-
-function copyLink() {
-
-  const link =
-    location.origin + "?room=" + currentRoom;
-
-  navigator.clipboard.writeText(link);
-
-  alert("링크 복사됨");
-}
-
-// =========================
 // state
 // =========================
 
 socket.on("stateUpdate", s => {
-  state = s;
 
-  renderHand();
-  renderTable();
+  state = s;
 
   document.getElementById("turn").innerText =
     state.turn === myId ? "🟢 내 턴" : "⏳ 상대 턴";
 
   document.getElementById("deck").innerText =
     "남은패 : " + (state.deck?.length || 0);
+
+  renderHand();
+  renderTable();
 });
 
 // =========================
@@ -93,12 +90,14 @@ socket.on("stateUpdate", s => {
 // =========================
 
 function renderHand() {
+
   const el = document.getElementById("hand");
   el.innerHTML = "";
 
   const cards = state?.hands?.[myId] || [];
 
   cards.forEach(card => {
+
     const img = document.createElement("img");
     img.src = "cards/" + card;
 
@@ -118,12 +117,15 @@ function renderHand() {
 // =========================
 
 function renderTable() {
+
   const el = document.getElementById("table");
   el.innerHTML = "";
 
   (state?.table || []).forEach(c => {
+
     const img = document.createElement("img");
     img.src = "cards/" + c;
+
     el.appendChild(img);
   });
 }
