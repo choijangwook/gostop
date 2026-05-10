@@ -21,6 +21,10 @@ const io = new Server(server,{
 
 const rooms = {};
 
+/* =========================
+   카드 생성
+========================= */
+
 function createDeck(){
 
   const cards = [];
@@ -32,6 +36,8 @@ function createDeck(){
     cards.push(`${i}_ribbon.png`);
     cards.push(`${i}_junk1.png`);
   }
+
+  /* 셔플 */
 
   for(let i=cards.length-1;i>0;i--){
 
@@ -46,6 +52,10 @@ function createDeck(){
 
   return cards;
 }
+
+/* =========================
+   방 생성
+========================= */
 
 function createRoom(roomId){
 
@@ -70,6 +80,10 @@ function createRoom(roomId){
   };
 }
 
+/* =========================
+   상태 전송
+========================= */
+
 function send(room){
 
   io.to(room.roomId)
@@ -78,6 +92,10 @@ function send(room){
       room
     );
 }
+
+/* =========================
+   턴 변경
+========================= */
 
 function nextTurn(room){
 
@@ -90,6 +108,10 @@ function nextTurn(room){
       ? room.players[1]
       : room.players[0];
 }
+
+/* =========================
+   카드 플레이
+========================= */
 
 function playCard(
   room,
@@ -143,17 +165,61 @@ function playCard(
     room.table.push(card);
   }
 
+  /* 드로우 */
+
   if(room.deck.length > 0){
 
-    room.table.push(
-      room.deck.pop()
-    );
+    const draw =
+      room.deck.pop();
+
+    room.table.push(draw);
   }
 
   nextTurn(room);
 
   send(room);
 }
+
+/* =========================
+   게임 리셋
+========================= */
+
+function restartRoom(room){
+
+  const deck =
+    createDeck();
+
+  room.deck = deck;
+
+  room.table =
+    deck.splice(0,8);
+
+  room.hands = {};
+  room.captured = {};
+
+  room.players.forEach(id=>{
+
+    room.hands[id] = [];
+    room.captured[id] = [];
+
+    for(let i=0;i<10;i++){
+
+      room.hands[id]
+        .push(
+          room.deck.pop()
+        );
+    }
+  });
+
+  room.turn =
+    room.players[0];
+
+  send(room);
+}
+
+/* =========================
+   연결
+========================= */
 
 io.on(
   "connection",
@@ -164,9 +230,14 @@ io.on(
       socket.id
     );
 
+    /* 입장 */
+
     socket.on(
       "joinRoom",
       roomId=>{
+
+        roomId =
+          String(roomId);
 
         let room =
           rooms[roomId];
@@ -209,6 +280,8 @@ io.on(
           }
         }
 
+        /* 최초 턴 */
+
         if(!room.turn){
 
           room.turn =
@@ -218,6 +291,8 @@ io.on(
         send(room);
       }
     );
+
+    /* 카드 플레이 */
 
     socket.on(
       "playCard",
@@ -237,6 +312,8 @@ io.on(
       }
     );
 
+    /* 다시 시작 */
+
     socket.on(
       "restartGame",
       roomId=>{
@@ -247,39 +324,66 @@ io.on(
         if(!room)
           return;
 
-        const deck =
-          createDeck();
+        restartRoom(room);
+      }
+    );
 
-        room.deck = deck;
+    /* 연결 종료 */
 
-        room.table =
-          deck.splice(0,8);
+    socket.on(
+      "disconnect",
+      ()=>{
 
-        room.hands = {};
-        room.captured = {};
+        console.log(
+          "disconnect:",
+          socket.id
+        );
 
-        room.players.forEach(id=>{
+        Object.keys(rooms)
+          .forEach(roomId=>{
 
-          room.hands[id] = [];
-          room.captured[id] = [];
+            const room =
+              rooms[roomId];
 
-          for(let i=0;i<10;i++){
+            if(!room)
+              return;
 
-            room.hands[id]
-              .push(
-                room.deck.pop()
+            room.players =
+              room.players.filter(
+                id =>
+                  id !== socket.id
               );
-          }
-        });
 
-        room.turn =
-          room.players[0];
+            delete room.hands[socket.id];
+            delete room.captured[socket.id];
 
-        send(room);
+            if(
+              room.players.length === 0
+            ){
+
+              delete rooms[roomId];
+
+            }else{
+
+              if(
+                room.turn === socket.id
+              ){
+
+                room.turn =
+                  room.players[0];
+              }
+
+              send(room);
+            }
+          });
       }
     );
   }
 );
+
+/* =========================
+   서버 시작
+========================= */
 
 server.listen(
   10000,
