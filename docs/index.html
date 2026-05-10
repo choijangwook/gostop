@@ -94,7 +94,6 @@ button:active{
 }
 
 @media (max-width:600px){
-
   .card{
     width:48px;
     height:72px;
@@ -107,17 +106,12 @@ button:active{
 <body>
 
 <div id="top">
-  <div id="turnInfo">
-    연결중...
-  </div>
+  <div id="turnInfo">연결중...</div>
 </div>
 
 <div class="section">
   <h3>상대 먹은패</h3>
-  <div
-    id="opponentCaptured"
-    class="row"
-  ></div>
+  <div id="opponentCaptured" class="row"></div>
 </div>
 
 <div class="section">
@@ -127,230 +121,180 @@ button:active{
 
 <div class="section">
   <h3>내 패</h3>
-  <div
-    id="hand"
-    class="row"
-  ></div>
+  <div id="hand" class="row"></div>
 </div>
 
 <div class="section">
   <h3>내 먹은패</h3>
-  <div
-    id="captured"
-    class="row"
-  ></div>
+  <div id="captured" class="row"></div>
 </div>
 
 <div style="height:90px;"></div>
 
 <div id="controls">
-
-  <button onclick="restartGame()">
-    다시하기
-  </button>
-
-  <button onclick="leaveRoom()">
-    나가기
-  </button>
-
+  <button onclick="restartGame()">다시하기</button>
+  <button onclick="leaveRoom()">나가기</button>
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <script>
 
-const SERVER =
-  "http://192.168.219.103:10000";
+// =========================
+// 서버 연결 (핵심 수정)
+// =========================
 
-const socket = io(SERVER);
+// ❌ 기존: io("http://192.168...")
+// ✅ 수정: 동일 origin 자동 연결 (배포/로컬 다 대응)
+const socket = io();
 
 const roomId = "room1";
-
 let myId = "";
 
-socket.on("connect", ()=>{
+// =========================
+// connect
+// =========================
 
+socket.on("connect", () => {
   myId = socket.id;
 
-  console.log(
-    "MY ID:",
-    myId
-  );
+  console.log("connected:", myId);
 
-  socket.emit(
-    "joinRoom",
-    roomId
-  );
+  socket.emit("joinRoom", { roomId });
 });
 
-socket.on(
-  "stateUpdate",
-  data=>{
+// =========================
+// state update
+// =========================
 
-    const isMyTurn =
-      data.turn === myId;
+socket.on("stateUpdate", data => {
 
-    document
-      .getElementById(
-        "turnInfo"
-      )
-      .innerText =
+  // 🔥 핵심 수정: turn 비교 방식 변경
+  const myRole = data.roles?.[myId];
+  const isMyTurn = myRole === data.turn;
 
-      isMyTurn
-        ? "🟢 내 턴"
-        : "🔴 상대 턴";
+  document.getElementById("turnInfo").innerText =
+    isMyTurn ? "🟢 내 턴" : "🔴 상대 턴";
 
-    render(data);
-  }
-);
+  render(data);
+});
+
+// =========================
+// 카드 생성
+// =========================
 
 function createCard(card){
 
-  const img =
-    document.createElement("img");
+  const img = document.createElement("img");
 
-  img.src =
-    "cards/" + card;
+  // 🔥 핵심 수정: 이미지 경로
+  img.src = "/cards/" + card;
 
-  img.className =
-    "card";
+  img.className = "card";
 
-  img.onerror = ()=>{
-
-    console.log(
-      "image fail:",
-      card
-    );
+  img.onerror = () => {
+    console.log("image fail:", card);
   };
 
   return img;
 }
 
+// =========================
+// render root
+// =========================
+
 function render(data){
 
-  renderHand(
-    data.hands?.[myId] || []
-  );
-
-  renderTable(
-    data.table || []
-  );
-
-  renderCaptured(
-    data.captured?.[myId] || []
-  );
+  renderHand(data.hands?.[myId] || []);
+  renderTable(data.table || []);
+  renderCaptured(data.captured?.[myId] || []);
 
   const opponentCards = [];
 
-  Object.keys(data.captured || {})
-    .forEach(id=>{
+  Object.keys(data.captured || {}).forEach(id => {
+    if (id !== myId) {
+      opponentCards.push(...data.captured[id]);
+    }
+  });
 
-      if(id !== myId){
-
-        opponentCards.push(
-          ...data.captured[id]
-        );
-      }
-    });
-
-  renderOpponent(
-    opponentCards
-  );
+  renderOpponent(opponentCards);
 }
+
+// =========================
+// hand
+// =========================
 
 function renderHand(cards){
 
-  const el =
-    document.getElementById(
-      "hand"
-    );
-
+  const el = document.getElementById("hand");
   el.innerHTML = "";
 
-  cards.forEach(card=>{
+  cards.forEach(card => {
 
-    const img =
-      createCard(card);
+    const img = createCard(card);
 
-    img.onclick = ()=>{
-
-      socket.emit(
-        "playCard",
-        {
-          roomId,
-          card
-        }
-      );
+    img.onclick = () => {
+      socket.emit("playCard", {
+        roomId,
+        card
+      });
     };
 
     el.appendChild(img);
   });
 }
 
+// =========================
+// table
+// =========================
+
 function renderTable(cards){
 
-  const el =
-    document.getElementById(
-      "table"
-    );
-
+  const el = document.getElementById("table");
   el.innerHTML = "";
 
-  cards.forEach(card=>{
-
-    const img =
-      createCard(card);
-
-    el.appendChild(img);
+  cards.forEach(card => {
+    el.appendChild(createCard(card));
   });
 }
+
+// =========================
+// 내 먹은패
+// =========================
 
 function renderCaptured(cards){
 
-  const el =
-    document.getElementById(
-      "captured"
-    );
-
+  const el = document.getElementById("captured");
   el.innerHTML = "";
 
-  cards.forEach(card=>{
-
-    const img =
-      createCard(card);
-
-    el.appendChild(img);
+  cards.forEach(card => {
+    el.appendChild(createCard(card));
   });
 }
+
+// =========================
+// 상대 먹은패
+// =========================
 
 function renderOpponent(cards){
 
-  const el =
-    document.getElementById(
-      "opponentCaptured"
-    );
-
+  const el = document.getElementById("opponentCaptured");
   el.innerHTML = "";
 
-  cards.forEach(card=>{
-
-    const img =
-      createCard(card);
-
-    el.appendChild(img);
+  cards.forEach(card => {
+    el.appendChild(createCard(card));
   });
 }
 
-function restartGame(){
+// =========================
+// 버튼
+// =========================
 
-  socket.emit(
-    "restartGame",
-    roomId
-  );
+function restartGame(){
+  socket.emit("restartGame", roomId);
 }
 
 function leaveRoom(){
-
   location.reload();
 }
 
