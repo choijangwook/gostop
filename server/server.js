@@ -4,398 +4,254 @@ const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
-
-app.use(
-  express.static(
-    path.join(__dirname, "../docs")
-  )
-);
-
 const server = http.createServer(app);
 
-const io = new Server(server,{
-  cors:{
-    origin:"*"
-  }
+app.use(express.static(path.join(__dirname, "../docs")));
+
+const io = new Server(server, {
+  cors: { origin: "*" }
 });
+
+// =========================
+// rooms
+// =========================
 
 const rooms = {};
 
-/* =========================
-   카드 생성
-========================= */
+// =========================
+// deck
+// =========================
 
-function createDeck(){
-
+function createDeck() {
   const cards = [];
 
-  for(let i=1;i<=12;i++){
-
+  for (let i = 1; i <= 12; i++) {
     cards.push(`${i}_bright.png`);
     cards.push(`${i}_animal.png`);
     cards.push(`${i}_ribbon.png`);
     cards.push(`${i}_junk1.png`);
   }
 
-  /* 셔플 */
+  cards.push("special1_draw.png");
+  cards.push("special2_draw.png");
+  cards.push("special3_draw.png");
 
-  for(let i=cards.length-1;i>0;i--){
-
-    const j =
-      Math.floor(
-        Math.random()*(i+1)
-      );
-
-    [cards[i],cards[j]] =
-      [cards[j],cards[i]];
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
   }
 
   return cards;
 }
 
-/* =========================
-   방 생성
-========================= */
+// =========================
+// room factory
+// =========================
 
-function createRoom(roomId){
-
-  const deck =
-    createDeck();
+function createRoom(roomId) {
+  const deck = createDeck();
 
   return {
-
     roomId,
-
-    players:[],
-
-    hands:{},
-    captured:{},
-
-    table:
-      deck.splice(0,8),
-
+    players: [],
+    roles: {},        // socketId -> A/B
+    turn: "A",
     deck,
-
-    turn:null
+    table: deck.splice(0, 8),
+    hands: {},
+    captured: {},
+    gameOver: false,
+    winner: null
   };
 }
 
-/* =========================
-   상태 전송
-========================= */
+// =========================
+// helper
+// =========================
 
-function send(room){
+function send(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
 
-  io.to(room.roomId)
-    .emit(
-      "stateUpdate",
-      room
-    );
+  io.to(roomId).emit("stateUpdate", room);
 }
 
-/* =========================
-   턴 변경
-========================= */
+// =========================
+// restart (핵심 안정화)
+// =========================
 
-function nextTurn(room){
+function restart(roomId) {
 
-  if(room.players.length < 2)
-    return;
+  const room = rooms[roomId];
+  if (!room) return;
 
-  room.turn =
-
-    room.turn === room.players[0]
-      ? room.players[1]
-      : room.players[0];
-}
-
-/* =========================
-   카드 플레이
-========================= */
-
-function playCard(
-  room,
-  playerId,
-  card
-){
-
-  if(room.turn !== playerId)
-    return;
-
-  const hand =
-    room.hands[playerId];
-
-  if(!hand)
-    return;
-
-  const idx =
-    hand.indexOf(card);
-
-  if(idx === -1)
-    return;
-
-  hand.splice(idx,1);
-
-  const month =
-    card.split("_")[0];
-
-  const match =
-    room.table.find(
-      c =>
-        c.split("_")[0]
-        ===
-        month
-    );
-
-  if(match){
-
-    room.table =
-      room.table.filter(
-        c => c !== match
-      );
-
-    room.captured[playerId]
-      .push(card);
-
-    room.captured[playerId]
-      .push(match);
-
-  }else{
-
-    room.table.push(card);
-  }
-
-  /* 드로우 */
-
-  if(room.deck.length > 0){
-
-    const draw =
-      room.deck.pop();
-
-    room.table.push(draw);
-  }
-
-  nextTurn(room);
-
-  send(room);
-}
-
-/* =========================
-   게임 리셋
-========================= */
-
-function restartRoom(room){
-
-  const deck =
-    createDeck();
+  const deck = createDeck();
 
   room.deck = deck;
-
-  room.table =
-    deck.splice(0,8);
-
+  room.table = deck.splice(0, 8);
   room.hands = {};
   room.captured = {};
+  room.turn = "A";
+  room.gameOver = false;
+  room.winner = null;
 
-  room.players.forEach(id=>{
+  room.players.forEach((id, idx) => {
+
+    room.roles[id] = idx === 0 ? "A" : "B";
 
     room.hands[id] = [];
     room.captured[id] = [];
 
-    for(let i=0;i<10;i++){
-
-      room.hands[id]
-        .push(
-          room.deck.pop()
-        );
+    for (let i = 0; i < 10; i++) {
+      room.hands[id].push(room.deck.pop());
     }
   });
 
-  room.turn =
-    room.players[0];
-
-  send(room);
+  send(roomId);
 }
 
-/* =========================
-   연결
-========================= */
+// =========================
+// play card
+// =========================
 
-io.on(
-  "connection",
-  socket=>{
+function play(roomId, socketId, card) {
 
-    console.log(
-      "connected:",
-      socket.id
-    );
+  const room = rooms[roomId];
+  if (!room) return;
 
-    /* 입장 */
+  const role = room.roles[socketId];
+  if (role !== room.turn) return;
 
-    socket.on(
-      "joinRoom",
-      roomId=>{
+  const hand = room.hands[socketId];
+  if (!hand) return;
 
-        roomId =
-          String(roomId);
+  const idx = hand.indexOf(card);
+  if (idx === -1) return;
 
-        let room =
-          rooms[roomId];
+  hand.splice(idx, 1);
 
-        if(!room){
+  const month = card.split("_")[0];
 
-          room =
-            createRoom(roomId);
+  const matchIndex = room.table.findIndex(c =>
+    c.split("_")[0] === month
+  );
 
-          rooms[roomId] =
-            room;
-        }
+  if (matchIndex !== -1) {
 
-        socket.join(roomId);
+    const match = room.table.splice(matchIndex, 1)[0];
 
-        if(
-          !room.players.includes(
-            socket.id
-          )
-        ){
+    room.captured[socketId].push(card);
+    room.captured[socketId].push(match);
 
-          room.players.push(
-            socket.id
-          );
-        }
-
-        if(
-          !room.hands[socket.id]
-        ){
-
-          room.hands[socket.id] = [];
-          room.captured[socket.id] = [];
-
-          for(let i=0;i<10;i++){
-
-            room.hands[socket.id]
-              .push(
-                room.deck.pop()
-              );
-          }
-        }
-
-        /* 최초 턴 */
-
-        if(!room.turn){
-
-          room.turn =
-            room.players[0];
-        }
-
-        send(room);
-      }
-    );
-
-    /* 카드 플레이 */
-
-    socket.on(
-      "playCard",
-      data=>{
-
-        const room =
-          rooms[data.roomId];
-
-        if(!room)
-          return;
-
-        playCard(
-          room,
-          socket.id,
-          data.card
-        );
-      }
-    );
-
-    /* 다시 시작 */
-
-    socket.on(
-      "restartGame",
-      roomId=>{
-
-        const room =
-          rooms[roomId];
-
-        if(!room)
-          return;
-
-        restartRoom(room);
-      }
-    );
-
-    /* 연결 종료 */
-
-    socket.on(
-      "disconnect",
-      ()=>{
-
-        console.log(
-          "disconnect:",
-          socket.id
-        );
-
-        Object.keys(rooms)
-          .forEach(roomId=>{
-
-            const room =
-              rooms[roomId];
-
-            if(!room)
-              return;
-
-            room.players =
-              room.players.filter(
-                id =>
-                  id !== socket.id
-              );
-
-            delete room.hands[socket.id];
-            delete room.captured[socket.id];
-
-            if(
-              room.players.length === 0
-            ){
-
-              delete rooms[roomId];
-
-            }else{
-
-              if(
-                room.turn === socket.id
-              ){
-
-                room.turn =
-                  room.players[0];
-              }
-
-              send(room);
-            }
-          });
-      }
-    );
+  } else {
+    room.table.push(card);
   }
-);
 
-/* =========================
-   서버 시작
-========================= */
-
-server.listen(
-  10000,
-  "0.0.0.0",
-  ()=>{
-
-    console.log(
-      "server running"
-    );
-
-    console.log(
-      "http://192.168.219.103:10000"
-    );
+  if (room.deck.length > 0) {
+    room.table.push(room.deck.pop());
   }
-);
+
+  room.turn = room.turn === "A" ? "B" : "A";
+
+  send(roomId);
+}
+
+// =========================
+// socket
+// =========================
+
+io.on("connection", socket => {
+
+  // join
+  socket.on("joinRoom", ({ roomId }) => {
+
+    if (!rooms[roomId]) {
+      rooms[roomId] = createRoom(roomId);
+    }
+
+    const room = rooms[roomId];
+
+    socket.join(roomId);
+
+    if (!room.players.includes(socket.id)) {
+      room.players.push(socket.id);
+    }
+
+    if (!room.roles[socket.id]) {
+      room.roles[socket.id] =
+        room.players.length === 1 ? "A" : "B";
+    }
+
+    if (!room.hands[socket.id]) {
+
+      room.hands[socket.id] = [];
+      room.captured[socket.id] = [];
+
+      for (let i = 0; i < 10; i++) {
+        room.hands[socket.id].push(room.deck.pop());
+      }
+    }
+
+    send(roomId);
+  });
+
+  // play
+  socket.on("playCard", ({ roomId, card }) => {
+    play(roomId, socket.id, card);
+  });
+
+  // restart
+  socket.on("restartGame", (roomId) => {
+    restart(roomId);
+  });
+
+  // leave
+  socket.on("leaveRoom", ({ roomId }) => {
+
+    const room = rooms[roomId];
+    if (!room) return;
+
+    room.players = room.players.filter(id => id !== socket.id);
+
+    delete room.roles[socket.id];
+    delete room.hands[socket.id];
+    delete room.captured[socket.id];
+
+    if (room.players.length === 0) {
+      delete rooms[roomId];
+      return;
+    }
+
+    send(roomId);
+  });
+
+  // disconnect
+  socket.on("disconnect", () => {
+
+    Object.keys(rooms).forEach(roomId => {
+
+      const room = rooms[roomId];
+      if (!room) return;
+
+      room.players = room.players.filter(id => id !== socket.id);
+
+      delete room.roles[socket.id];
+      delete room.hands[socket.id];
+      delete room.captured[socket.id];
+
+      if (room.players.length === 0) {
+        delete rooms[roomId];
+      } else {
+        send(roomId);
+      }
+    });
+  });
+});
+
+// =========================
+// start
+// =========================
+
+server.listen(10000, "0.0.0.0", () => {
+  console.log("server running");
+});
