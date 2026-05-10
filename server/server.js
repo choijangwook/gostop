@@ -65,6 +65,7 @@ function createRoom(roomId) {
   const deck = createDeck();
 
   return {
+
     roomId: String(roomId),
 
     players: [],
@@ -114,7 +115,9 @@ function send(room) {
 function nextTurn(room) {
 
   room.turn =
-    room.turn === "A" ? "B" : "A";
+    room.turn === "A"
+      ? "B"
+      : "A";
 }
 
 // =========================
@@ -133,7 +136,8 @@ function play(room, playerId, card) {
 
   hand.splice(idx, 1);
 
-  const month = card.split("_")[0];
+  const month =
+    card.split("_")[0];
 
   const match =
     room.table.find(
@@ -143,7 +147,9 @@ function play(room, playerId, card) {
   if (match) {
 
     room.table =
-      room.table.filter(c => c !== match);
+      room.table.filter(
+        c => c !== match
+      );
 
     room.captured[playerId].push(card);
     room.captured[playerId].push(match);
@@ -153,10 +159,11 @@ function play(room, playerId, card) {
     room.table.push(card);
   }
 
-  // deck draw
+  // draw card
   if (room.deck.length > 0) {
 
-    const drawCard = room.deck.pop();
+    const drawCard =
+      room.deck.pop();
 
     room.table.push(drawCard);
   }
@@ -167,7 +174,7 @@ function play(room, playerId, card) {
 }
 
 // =========================
-// restart
+// restart room
 // =========================
 
 function restartRoom(room) {
@@ -176,7 +183,8 @@ function restartRoom(room) {
 
   room.deck = deck;
 
-  room.table = deck.splice(0, 8);
+  room.table =
+    deck.splice(0, 8);
 
   room.hands = {};
   room.captured = {};
@@ -188,7 +196,9 @@ function restartRoom(room) {
   room.players.forEach((id, index) => {
 
     room.roles[id] =
-      index === 0 ? "A" : "B";
+      index === 0
+        ? "A"
+        : "B";
 
     room.hands[id] = [];
     room.captured[id] = [];
@@ -219,25 +229,36 @@ io.on("connection", socket => {
     const roomId =
       String(data.roomId);
 
-    let room = rooms[roomId];
+    let room =
+      rooms[roomId];
 
     if (!room) {
 
-      room = createRoom(roomId);
+      room =
+        createRoom(roomId);
 
-      rooms[roomId] = room;
+      rooms[roomId] =
+        room;
     }
 
     socket.join(roomId);
 
     // add player
-    if (!room.players.includes(socket.id)) {
+    if (
+      !room.players.includes(
+        socket.id
+      )
+    ) {
 
-      room.players.push(socket.id);
+      room.players.push(
+        socket.id
+      );
     }
 
     // role
-    if (!room.roles[socket.id]) {
+    if (
+      !room.roles[socket.id]
+    ) {
 
       room.roles[socket.id] =
         room.players.length === 1
@@ -246,7 +267,9 @@ io.on("connection", socket => {
     }
 
     // hand init
-    if (!room.hands[socket.id]) {
+    if (
+      !room.hands[socket.id]
+    ) {
 
       room.hands[socket.id] = [];
       room.captured[socket.id] = [];
@@ -305,7 +328,7 @@ io.on("connection", socket => {
   });
 
   // =========================
-  // leave
+  // leave room
   // =========================
 
   socket.on("leaveRoom", data => {
@@ -315,7 +338,8 @@ io.on("connection", socket => {
 
     if (!room) return;
 
-    const id = socket.id;
+    const id =
+      socket.id;
 
     room.players =
       room.players.filter(
@@ -326,10 +350,14 @@ io.on("connection", socket => {
     delete room.hands[id];
     delete room.captured[id];
 
-    socket.leave(data.roomId);
+    socket.leave(
+      data.roomId
+    );
 
     // empty room delete
-    if (room.players.length === 0) {
+    if (
+      room.players.length === 0
+    ) {
 
       delete rooms[data.roomId];
 
@@ -347,15 +375,23 @@ io.on("connection", socket => {
 
   socket.on("disconnect", () => {
 
-    console.log("disconnect:", socket.id);
+    console.log(
+      "disconnect:",
+      socket.id
+    );
 
     Object.keys(rooms).forEach(roomId => {
 
-      const room = rooms[roomId];
+      const room =
+        rooms[roomId];
 
       if (!room) return;
 
-      if (room.players.includes(socket.id)) {
+      if (
+        room.players.includes(
+          socket.id
+        )
+      ) {
 
         room.players =
           room.players.filter(
@@ -366,7 +402,9 @@ io.on("connection", socket => {
         delete room.hands[socket.id];
         delete room.captured[socket.id];
 
-        if (room.players.length === 0) {
+        if (
+          room.players.length === 0
+        ) {
 
           delete rooms[roomId];
 
@@ -382,12 +420,12 @@ io.on("connection", socket => {
 });
 
 // =========================
-// start
+// server start
 // =========================
 
 server.listen(10000, "0.0.0.0", () => {
 
   console.log("server running");
-  console.log("http://localhost:10000");
+  console.log("http://192.168.219.103:10000");
 
 });
