@@ -1,54 +1,29 @@
 const socket = io("https://gostop-server.onrender.com");
 
 let myId;
-let currentRoom;
+let roomId;
 let state;
-
-// =========================
-// 소리
-// =========================
-
-const clickSound = new Audio("sounds/card.mp3");
-const captureSound = new Audio("sounds/capture.mp3");
-const turnSound = new Audio("sounds/turn.mp3");
-const bgm = new Audio("sounds/bgm.mp3");
-
-bgm.loop = true;
-bgm.volume = 0.3;
 
 // =========================
 // connect
 // =========================
 
 socket.on("connect", () => {
-
   myId = socket.id;
-
-  localStorage.setItem("gid", myId);
 });
 
 // =========================
 // join
 // =========================
 
-function joinRoom(roomId) {
+function joinRoom(r) {
 
-  const room =
-    roomId ||
-    document.getElementById("roomInput").value;
+  roomId = r || document.getElementById("roomInput").value;
 
-  if (!room) return;
-
-  currentRoom = room;
-
-  socket.emit("joinRoom", {
-    roomId: room
-  });
+  socket.emit("joinRoom", { roomId });
 
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game").style.display = "block";
-
-  bgm.play().catch(()=>{});
 }
 
 // =========================
@@ -61,26 +36,16 @@ socket.on("stateUpdate", s => {
 
   renderHand();
   renderTable();
+  renderCaptured();
 
-  const myTurn = state.turn === myId;
+  const myTurn =
+    String(state.turn) === String(myId);
 
   document.getElementById("turn").innerText =
     myTurn ? "🟢 내 턴" : "⏳ 상대 턴";
 
   document.getElementById("deck").innerText =
     "남은패 : " + (state.deck?.length || 0);
-
-  if (myTurn) {
-
-    turnSound.currentTime = 0;
-    turnSound.play();
-  }
-
-  if (state.lastCapture) {
-
-    captureSound.currentTime = 0;
-    captureSound.play();
-  }
 });
 
 // =========================
@@ -101,13 +66,8 @@ function renderHand() {
 
     img.onclick = () => {
 
-      if (state.turn !== myId) return;
-
-      clickSound.currentTime = 0;
-      clickSound.play();
-
       socket.emit("playCard", {
-        roomId: currentRoom,
+        roomId,
         card
       });
     };
@@ -131,5 +91,37 @@ function renderTable() {
     img.src = "cards/" + c;
 
     el.appendChild(img);
+  });
+}
+
+// =========================
+// 먹은패 (🔥 핵심 수정)
+// =========================
+
+function renderCaptured() {
+
+  const my = document.getElementById("myCaptured");
+  const enemy = document.getElementById("enemyCaptured");
+
+  if (my) my.innerHTML = "";
+  if (enemy) enemy.innerHTML = "";
+
+  if (!state?.captured) return;
+
+  Object.keys(state.captured).forEach(id => {
+
+    const list = state.captured[id];
+
+    list.forEach(card => {
+
+      const img = document.createElement("img");
+      img.src = "cards/" + card;
+
+      if (String(id) === String(myId)) {
+        my?.appendChild(img);
+      } else {
+        enemy?.appendChild(img);
+      }
+    });
   });
 }
