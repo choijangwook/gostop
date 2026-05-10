@@ -12,7 +12,7 @@ const io = new Server(server, {
 const rooms = {};
 
 // =========================
-// 카드
+// deck
 // =========================
 
 function createDeck() {
@@ -20,7 +20,6 @@ function createDeck() {
   const cards = [];
 
   for (let i = 1; i <= 12; i++) {
-
     cards.push(`${i}_bright.png`);
     cards.push(`${i}_animal.png`);
     cards.push(`${i}_ribbon.png`);
@@ -40,7 +39,7 @@ function createDeck() {
 }
 
 // =========================
-// 방 생성
+// room
 // =========================
 
 function createRoom(roomId) {
@@ -48,47 +47,60 @@ function createRoom(roomId) {
   const deck = createDeck();
 
   const room = {
-    roomId,
+    roomId: String(roomId),
     players: [],
     hands: {},
     captured: {},
-    table: [],
+    table: deck.splice(0, 8),
     deck,
     turn: null,
-    winner: null,
-    lastCapture: false
+    winner: null
   };
 
-  for (let i = 0; i < 8; i++) {
-    room.table.push(deck.pop());
-  }
-
-  rooms[roomId] = room;
   return room;
 }
 
 // =========================
-// 턴
+// send state (핵심 fix)
+// =========================
+
+function send(room) {
+
+  if (!room) return;
+
+  io.to(room.roomId).emit("stateUpdate", {
+    roomId: room.roomId,
+    players: room.players,
+    hands: room.hands,
+    captured: room.captured,
+    table: room.table,
+    deck: room.deck,
+    turn: String(room.turn),
+    winner: room.winner
+  });
+}
+
+// =========================
+// next turn
 // =========================
 
 function nextTurn(room, id) {
-  const idx = room.players.indexOf(id);
-  room.turn = room.players[(idx + 1) % room.players.length];
+
+  const idx = room.players.indexOf(String(id));
+
+  room.turn =
+    room.players[(idx + 1) % room.players.length];
+
+  room.turn = String(room.turn);
 }
 
 // =========================
-// 월 추출
-// =========================
-
-function month(card) {
-  return card.split("_")[0];
-}
-
-// =========================
-// 고스톱 핵심 로직
+// play
 // =========================
 
 function play(room, playerId, card) {
+
+  playerId = String(playerId);
 
   const hand = room.hands[playerId];
   if (!hand) return;
@@ -98,15 +110,9 @@ function play(room, playerId, card) {
 
   hand.splice(idx, 1);
 
-  const m = month(card);
+  const month = card.split("_")[0];
 
-  const match = room.table.find(c => month(c) === m);
-
-  room.lastCapture = false;
-
-  // =====================
-  // 먹기 성공
-  // =====================
+  const match = room.table.find(c => c.split("_")[0] === month);
 
   if (match) {
 
@@ -115,52 +121,17 @@ function play(room, playerId, card) {
     room.captured[playerId].push(card);
     room.captured[playerId].push(match);
 
-    room.lastCapture = true;
-
   } else {
-
-    // 실패 → 바닥
     room.table.push(card);
   }
 
-  // =====================
-  // 드로우
-  // =====================
-
   if (room.deck.length > 0) {
-
-    const draw = room.deck.pop();
-
-    const dm = month(draw);
-
-    const dmatch = room.table.find(c => month(c) === dm);
-
-    if (dmatch) {
-
-      room.table = room.table.filter(c => c !== dmatch);
-
-      room.captured[playerId].push(draw);
-      room.captured[playerId].push(dmatch);
-
-      room.lastCapture = true;
-
-    } else {
-      room.table.push(draw);
-    }
+    room.table.push(room.deck.pop());
   }
 
   nextTurn(room, playerId);
 
   send(room);
-}
-
-// =========================
-// 상태 전송
-// =========================
-
-function send(room) {
-  if (!room) return;
-  io.to(room.roomId).emit("stateUpdate", room);
 }
 
 // =========================
@@ -171,10 +142,12 @@ io.on("connection", socket => {
 
   socket.on("joinRoom", data => {
 
-    let room = rooms[data.roomId];
-    if (!room) room = createRoom(data.roomId);
+    const roomId = String(data.roomId);
 
-    socket.join(data.roomId);
+    let room = rooms[roomId];
+    if (!room) room = createRoom(roomId);
+
+    socket.join(roomId);
 
     if (!room.players.includes(socket.id)) {
       room.players.push(socket.id);
@@ -190,7 +163,11 @@ io.on("connection", socket => {
       }
     }
 
-    if (!room.turn) room.turn = room.players[0];
+    if (!room.turn) {
+      room.turn = String(room.players[0]);
+    }
+
+    rooms[roomId] = room;
 
     send(room);
   });
@@ -200,12 +177,12 @@ io.on("connection", socket => {
     const room = rooms[data.roomId];
     if (!room) return;
 
-    if (room.turn !== socket.id) return;
+    if (String(room.turn) !== String(socket.id)) return;
 
     play(room, socket.id, data.card);
   });
 });
 
-server.listen(process.env.PORT || 10000, () => {
+server.listen(10000, () => {
   console.log("server running");
 });
