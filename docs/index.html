@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
 <title>GoStop</title>
 
@@ -150,35 +150,23 @@ button{
   </div>
 
   <div class="section">
-
     <h3>상대 먹은패</h3>
-
     <div id="opponentCaptured"></div>
-
   </div>
 
   <div class="section">
-
     <h3>테이블</h3>
-
     <div id="table"></div>
-
   </div>
 
   <div class="section">
-
     <h3>내 패</h3>
-
     <div id="hand"></div>
-
   </div>
 
   <div class="section">
-
     <h3>내 먹은패</h3>
-
     <div id="captured"></div>
-
   </div>
 
 </div>
@@ -206,13 +194,13 @@ const roomId = "room1";
 socket.on("connect", () => {
 
   console.log(
-    "MY SOCKET:",
+    "socket connected:",
     socket.id
   );
 
   socket.emit(
     "joinRoom",
-    { roomId }
+    roomId
   );
 });
 
@@ -244,7 +232,10 @@ socket.on(
         ? "내 턴"
         : "상대 턴";
 
-    render(data,myId);
+    render(
+      data,
+      myId
+    );
   }
 );
 
@@ -253,7 +244,7 @@ function playCard(card){
   socket.emit(
     "playCard",
     {
-      roomId,
+      room: roomId,
       card
     }
   );
@@ -262,22 +253,20 @@ function playCard(card){
 function restartGame(){
 
   socket.emit(
-    "restart",
-    { roomId }
+    "restartGame",
+    roomId
   );
 }
 
 function leaveRoom(){
 
-  socket.emit(
-    "leaveRoom",
-    { roomId }
-  );
-
   location.reload();
 }
 
-function render(data,myId){
+function render(
+  data,
+  myId
+){
 
   renderHand(
     data.hands?.[myId] || []
@@ -327,7 +316,9 @@ function makeCard(card){
 function renderHand(cards){
 
   const el =
-    document.getElementById("hand");
+    document.getElementById(
+      "hand"
+    );
 
   el.innerHTML = "";
 
@@ -346,7 +337,9 @@ function renderHand(cards){
 function renderTable(cards){
 
   const el =
-    document.getElementById("table");
+    document.getElementById(
+      "table"
+    );
 
   el.innerHTML = "";
 
@@ -362,7 +355,9 @@ function renderTable(cards){
 function renderCaptured(cards){
 
   const el =
-    document.getElementById("captured");
+    document.getElementById(
+      "captured"
+    );
 
   el.innerHTML = "";
 
