@@ -41,7 +41,6 @@ function createDeck() {
   cards.push("special2_draw.png");
   cards.push("special3_draw.png");
 
-  // shuffle
   for (let i = cards.length - 1; i > 0; i--) {
 
     const j =
@@ -69,7 +68,6 @@ function createRoom(roomId) {
     roomId,
 
     players: [],
-    roles: {},
 
     hands: {},
     captured: {},
@@ -78,9 +76,7 @@ function createRoom(roomId) {
 
     deck,
 
-    turn: "A",
-
-    winner: null
+    turn: null
   };
 }
 
@@ -92,22 +88,7 @@ function send(room) {
 
   io.to(room.roomId).emit(
     "stateUpdate",
-    {
-      roomId: room.roomId,
-
-      players: room.players,
-      roles: room.roles,
-
-      hands: room.hands,
-      captured: room.captured,
-
-      table: room.table,
-      deck: room.deck,
-
-      turn: room.turn,
-
-      winner: room.winner
-    }
+    room
   );
 }
 
@@ -117,10 +98,15 @@ function send(room) {
 
 function nextTurn(room) {
 
+  if (
+    room.players.length < 2
+  ) return;
+
   room.turn =
-    room.turn === "A"
-      ? "B"
-      : "A";
+
+    room.turn === room.players[0]
+      ? room.players[1]
+      : room.players[0];
 }
 
 // =========================
@@ -170,7 +156,6 @@ function play(room, playerId, card) {
     room.table.push(card);
   }
 
-  // draw card
   if (room.deck.length > 0) {
 
     room.table.push(
@@ -200,20 +185,18 @@ function restartRoom(room) {
   room.hands = {};
   room.captured = {};
 
-  room.turn = "A";
+  room.turn =
+    room.players[0];
 
-  room.winner = null;
-
-  room.players.forEach((id) => {
+  room.players.forEach(id => {
 
     room.hands[id] = [];
     room.captured[id] = [];
 
     for (let i = 0; i < 10; i++) {
 
-      room.hands[id].push(
-        room.deck.pop()
-      );
+      room.hands[id]
+        .push(room.deck.pop());
     }
   });
 }
@@ -228,10 +211,6 @@ io.on("connection", socket => {
     "connected:",
     socket.id
   );
-
-  // =========================
-  // join room
-  // =========================
 
   socket.on(
     "joinRoom",
@@ -250,7 +229,6 @@ io.on("connection", socket => {
 
       socket.join(roomId);
 
-      // add player
       if (
         !room.players.includes(
           socket.id
@@ -262,16 +240,6 @@ io.on("connection", socket => {
         );
       }
 
-      // role fix
-      room.players.forEach((id, index) => {
-
-        room.roles[id] =
-          index === 0
-            ? "A"
-            : "B";
-      });
-
-      // hand init
       if (
         !room.hands[socket.id]
       ) {
@@ -286,13 +254,15 @@ io.on("connection", socket => {
         }
       }
 
+      if (!room.turn) {
+
+        room.turn =
+          room.players[0];
+      }
+
       send(room);
     }
   );
-
-  // =========================
-  // play card
-  // =========================
 
   socket.on(
     "playCard",
@@ -303,11 +273,8 @@ io.on("connection", socket => {
 
       if (!room) return;
 
-      // turn check
       if (
-        room.roles[socket.id]
-        !==
-        room.turn
+        room.turn !== socket.id
       ) {
 
         return;
@@ -320,10 +287,6 @@ io.on("connection", socket => {
       );
     }
   );
-
-  // =========================
-  // restart
-  // =========================
 
   socket.on(
     "restart",
@@ -340,94 +303,17 @@ io.on("connection", socket => {
     }
   );
 
-  // =========================
-  // leave room
-  // =========================
-
   socket.on(
     "leaveRoom",
     ({ roomId }) => {
 
-      const room =
-        rooms[roomId];
-
-      if (!room) return;
-
-      room.players =
-        room.players.filter(
-          id => id !== socket.id
-        );
-
-      delete room.roles[socket.id];
-      delete room.hands[socket.id];
-      delete room.captured[socket.id];
-
       socket.leave(roomId);
-
-      if (
-        room.players.length === 0
-      ) {
-
-        delete rooms[roomId];
-
-        return;
-      }
-
-      room.turn = "A";
-
-      send(room);
-    }
-  );
-
-  // =========================
-  // disconnect
-  // =========================
-
-  socket.on(
-    "disconnect",
-    () => {
-
-      console.log(
-        "disconnect:",
-        socket.id
-      );
-
-      Object.keys(rooms)
-        .forEach(roomId => {
-
-          const room =
-            rooms[roomId];
-
-          if (!room) return;
-
-          room.players =
-            room.players.filter(
-              id => id !== socket.id
-            );
-
-          delete room.roles[socket.id];
-          delete room.hands[socket.id];
-          delete room.captured[socket.id];
-
-          if (
-            room.players.length === 0
-          ) {
-
-            delete rooms[roomId];
-
-          } else {
-
-            room.turn = "A";
-
-            send(room);
-          }
-        });
     }
   );
 });
 
 // =========================
-// server start
+// start
 // =========================
 
 server.listen(
