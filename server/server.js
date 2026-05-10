@@ -39,63 +39,56 @@ function createDeck() {
 }
 
 // =========================
-// room
+// room 생성
 // =========================
 
 function createRoom(roomId) {
 
   const deck = createDeck();
 
-  const room = {
+  return {
     roomId: String(roomId),
     players: [],
+    roles: {},          // socket.id -> A/B
     hands: {},
     captured: {},
     table: deck.splice(0, 8),
     deck,
-    turn: null,
+    turn: "A",
     winner: null
   };
-
-  return room;
 }
 
 // =========================
-// send state (핵심 fix)
+// send state
 // =========================
 
 function send(room) {
-
   if (!room) return;
 
   io.to(room.roomId).emit("stateUpdate", {
     roomId: room.roomId,
     players: room.players,
+    roles: room.roles,
     hands: room.hands,
     captured: room.captured,
     table: room.table,
     deck: room.deck,
-    turn: String(room.turn),
+    turn: room.turn,
     winner: room.winner
   });
 }
 
 // =========================
-// next turn
+// next turn (A/B 고정)
 // =========================
 
-function nextTurn(room, id) {
-
-  const idx = room.players.indexOf(String(id));
-
-  room.turn =
-    room.players[(idx + 1) % room.players.length];
-
-  room.turn = String(room.turn);
+function nextTurn(room) {
+  room.turn = room.turn === "A" ? "B" : "A";
 }
 
 // =========================
-// play
+// play logic
 // =========================
 
 function play(room, playerId, card) {
@@ -115,12 +108,9 @@ function play(room, playerId, card) {
   const match = room.table.find(c => c.split("_")[0] === month);
 
   if (match) {
-
     room.table = room.table.filter(c => c !== match);
-
     room.captured[playerId].push(card);
     room.captured[playerId].push(match);
-
   } else {
     room.table.push(card);
   }
@@ -129,9 +119,39 @@ function play(room, playerId, card) {
     room.table.push(room.deck.pop());
   }
 
-  nextTurn(room, playerId);
+  nextTurn(room);
 
   send(room);
+}
+
+// =========================
+// reset room (다시하기)
+// =========================
+
+function resetRoom(room) {
+
+  const deck = createDeck();
+
+  room.deck = deck;
+  room.table = deck.splice(0, 8);
+  room.hands = {};
+  room.captured = {};
+  room.turn = "A";
+  room.winner = null;
+
+  // 기존 플레이어 유지하면서 재분배
+  room.players.forEach((id, index) => {
+
+    const role = index === 0 ? "A" : "B";
+    room.roles[id] = role;
+
+    room.hands[id] = [];
+    room.captured[id] = [];
+
+    for (let i = 0; i < 10; i++) {
+      room.hands[id].push(room.deck.pop());
+    }
+  });
 }
 
 // =========================
@@ -140,6 +160,9 @@ function play(room, playerId, card) {
 
 io.on("connection", socket => {
 
+  // =========================
+  // join
+  // =========================
   socket.on("joinRoom", data => {
 
     const roomId = String(data.roomId);
@@ -153,8 +176,14 @@ io.on("connection", socket => {
       room.players.push(socket.id);
     }
 
-    if (!room.hands[socket.id]) {
+    // role 부여
+    if (!room.roles[socket.id]) {
+      room.roles[socket.id] =
+        room.players.length === 1 ? "A" : "B";
+    }
 
+    // hand 생성
+    if (!room.hands[socket.id]) {
       room.hands[socket.id] = [];
       room.captured[socket.id] = [];
 
@@ -163,8 +192,8 @@ io.on("connection", socket => {
       }
     }
 
-    if (!room.turn) {
-      room.turn = String(room.players[0]);
+    if (room.players.length === 1) {
+      room.turn = "A";
     }
 
     rooms[roomId] = room;
@@ -172,15 +201,62 @@ io.on("connection", socket => {
     send(room);
   });
 
+  // =========================
+  // play
+  // =========================
   socket.on("playCard", data => {
 
     const room = rooms[data.roomId];
     if (!room) return;
 
-    if (String(room.turn) !== String(socket.id)) return;
+    if (room.roles[socket.id] !== room.turn) return;
 
     play(room, socket.id, data.card);
   });
+
+  // =========================
+  // 다시하기
+  // =========================
+  socket.on("restart", data => {
+
+    const room = rooms[data.roomId];
+    if (!room) return;
+
+    resetRoom(room);
+    send(room);
+  });
+
+  // =========================
+  // 나가기
+  // =========================
+  socket.on("leaveRoom", data => {
+
+    const roomId = data.roomId;
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const id = socket.id;
+
+    room.players = room.players.filter(p => p !== id);
+
+    delete room.roles[id];
+    delete room.hands[id];
+    delete room.captured[id];
+
+    socket.leave(roomId);
+
+    // 방 비었으면 삭제
+    if (room.players.length === 0) {
+      delete rooms[roomId];
+      return;
+    }
+
+    // 턴 정리
+    room.turn = "A";
+
+    send(room);
+  });
+
 });
 
 server.listen(10000, () => {
